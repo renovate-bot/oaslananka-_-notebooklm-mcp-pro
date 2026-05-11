@@ -1,0 +1,452 @@
+from __future__ import annotations
+
+import asyncio
+from pathlib import Path
+from typing import Any
+
+from notebooklm import RateLimitError
+from pydantic import SecretStr
+from pytest import MonkeyPatch, raises
+from tenacity import wait_none
+
+import nlm_mcp.backend.client as client_module
+from nlm_mcp.backend.client import AuthSource, NotebookLMBackend, resolve_auth_source
+from nlm_mcp.backend.exceptions import BackendAuthError, BackendRateLimitError, BackendTimeoutError
+from nlm_mcp.config import Settings
+
+AUTH_ERROR_CODE = -32002
+MAX_RETRY_ATTEMPTS = 5
+EXPECTED_RECONNECT_CLIENTS = 2
+RETRY_AFTER_SECONDS = 3
+
+
+async def _no_sleep(_delay: float) -> None:
+    return None
+
+
+class FakeNotebooksAPI:
+    def __init__(self) -> None:
+        self.calls: list[tuple[str, tuple[Any, ...]]] = []
+        self.error: Exception | None = None
+        self.create_error: Exception | None = None
+
+    async def list(self) -> list[dict[str, str]]:
+        self.calls.append(("list", ()))
+        if self.error is not None:
+            raise self.error
+        return [{"id": "nb-1", "title": "Notebook"}]
+
+    async def create(self, title: str) -> dict[str, str]:
+        self.calls.append(("create", (title,)))
+        if self.create_error is not None:
+            raise self.create_error
+        return {"id": "nb-2", "title": title}
+
+    async def get(self, notebook_id: str) -> dict[str, str]:
+        self.calls.append(("get", (notebook_id,)))
+        return {"id": notebook_id, "title": "Notebook"}
+
+    async def rename(self, notebook_id: str, new_title: str) -> dict[str, str]:
+        self.calls.append(("rename", (notebook_id, new_title)))
+        return {"id": notebook_id, "title": new_title}
+
+    async def delete(self, notebook_id: str) -> bool:
+        self.calls.append(("delete", (notebook_id,)))
+        return True
+
+
+class FakeSourcesAPI:
+    def __init__(self) -> None:
+        self.calls: list[tuple[str, tuple[Any, ...]]] = []
+
+    async def list(self, notebook_id: str) -> list[dict[str, str]]:
+        self.calls.append(("list", (notebook_id,)))
+        return [{"id": "src-1", "title": "Source"}]
+
+    async def add_url(self, notebook_id: str, url: str, wait: bool = False) -> dict[str, str]:
+        self.calls.append(("add_url", (notebook_id, url, wait)))
+        return {"id": "src-2", "title": url}
+
+    async def get_fulltext(self, notebook_id: str, source_id: str) -> dict[str, str]:
+        self.calls.append(("get_fulltext", (notebook_id, source_id)))
+        return {"source_id": source_id, "text": "full text"}
+
+
+class FakeChatAPI:
+    def __init__(self) -> None:
+        self.calls: list[tuple[str, tuple[Any, ...]]] = []
+        self.error: Exception | None = None
+
+    async def ask(
+        self,
+        notebook_id: str,
+        question: str,
+        source_ids: list[str] | None = None,
+        conversation_id: str | None = None,
+    ) -> dict[str, object]:
+        self.calls.append(("ask", (notebook_id, question, source_ids, conversation_id)))
+        if self.error is not None:
+            raise self.error
+        return {"answer": "response", "citations": []}
+
+
+class FakeNotebookLMClient:
+    def __init__(self) -> None:
+        self.notebooks = FakeNotebooksAPI()
+        self.sources = FakeSourcesAPI()
+        self.chat = FakeChatAPI()
+        self.entered = False
+        self.exited = False
+
+    async def __aenter__(self) -> FakeNotebookLMClient:
+        self.entered = True
+        return self
+
+    async def __aexit__(self, exc_type: object, exc_value: object, traceback: object) -> None:
+        self.exited = True
+
+
+async def test_backend_delegates_notebook_operations() -> None:
+    fake = FakeNotebookLMClient()
+
+    async def factory(_settings: Settings) -> FakeNotebookLMClient:
+        return fake
+
+    backend = NotebookLMBackend(
+        Settings(),
+        client_factory=factory,
+        retry_wait_strategy=wait_none(),
+        retry_sleep=_no_sleep,
+    )
+
+    assert await backend.list_notebooks() == [{"id": "nb-1", "title": "Notebook"}]
+    assert await backend.create_notebook("New") == {"id": "nb-2", "title": "New"}
+    assert await backend.get_notebook("nb-1") == {"id": "nb-1", "title": "Notebook"}
+    assert await backend.rename_notebook("nb-1", "Renamed") == {
+        "id": "nb-1",
+        "title": "Renamed",
+    }
+    assert await backend.delete_notebook("nb-1") is True
+
+    await backend.close()
+
+    assert fake.entered is True
+    assert fake.exited is True
+    assert fake.notebooks.calls == [
+        ("list", ()),
+        ("create", ("New",)),
+        ("get", ("nb-1",)),
+        ("rename", ("nb-1", "Renamed")),
+        ("delete", ("nb-1",)),
+    ]
+
+
+async def test_backend_delegates_source_and_chat_operations() -> None:
+    fake = FakeNotebookLMClient()
+
+    async def factory(_settings: Settings) -> FakeNotebookLMClient:
+        return fake
+
+    backend = NotebookLMBackend(
+        Settings(),
+        client_factory=factory,
+        retry_wait_strategy=wait_none(),
+        retry_sleep=_no_sleep,
+    )
+
+    try:
+        assert await backend.list_sources("nb-1") == [{"id": "src-1", "title": "Source"}]
+        assert await backend.add_url_source("nb-1", "https://example.com") == {
+            "id": "src-2",
+            "title": "https://example.com",
+        }
+        assert await backend.get_source_fulltext("nb-1", "src-1") == {
+            "source_id": "src-1",
+            "text": "full text",
+        }
+        assert await backend.ask("nb-1", "Question?", source_ids=["src-1"]) == {
+            "answer": "response",
+            "citations": [],
+        }
+
+        assert fake.sources.calls == [
+            ("list", ("nb-1",)),
+            ("add_url", ("nb-1", "https://example.com", False)),
+            ("get_fulltext", ("nb-1", "src-1")),
+        ]
+        assert fake.chat.calls == [("ask", ("nb-1", "Question?", ["src-1"], None))]
+    finally:
+        await backend.close()
+
+
+async def test_backend_maps_errors_after_retry() -> None:
+    fake = FakeNotebookLMClient()
+    fake.notebooks.error = RateLimitError("limited", retry_after=RETRY_AFTER_SECONDS)
+
+    async def factory(_settings: Settings) -> FakeNotebookLMClient:
+        return fake
+
+    backend = NotebookLMBackend(
+        Settings(),
+        client_factory=factory,
+        retry_wait_strategy=wait_none(),
+        retry_sleep=_no_sleep,
+    )
+
+    try:
+        with raises(BackendRateLimitError) as exc_info:
+            await backend.list_notebooks()
+
+        assert exc_info.value.data["retry_after_seconds"] == RETRY_AFTER_SECONDS
+        assert len(fake.notebooks.calls) == MAX_RETRY_ATTEMPTS
+    finally:
+        await backend.close()
+
+
+async def test_backend_connect_serializes_concurrent_initialization() -> None:
+    fake = FakeNotebookLMClient()
+    factory_calls = 0
+
+    async def factory(_settings: Settings) -> FakeNotebookLMClient:
+        nonlocal factory_calls
+        factory_calls += 1
+        await asyncio.sleep(0)
+        return fake
+
+    backend = NotebookLMBackend(
+        Settings(),
+        client_factory=factory,
+        retry_wait_strategy=wait_none(),
+        retry_sleep=_no_sleep,
+    )
+
+    try:
+        clients = await asyncio.gather(backend.connect(), backend.connect(), backend.connect())
+    finally:
+        await backend.close()
+
+    assert all(client is fake for client in clients)
+    assert factory_calls == 1
+    assert fake.exited is True
+
+
+async def test_backend_cleans_up_context_when_enter_fails() -> None:
+    class FailingEnterClient(FakeNotebookLMClient):
+        async def __aenter__(self) -> FakeNotebookLMClient:
+            self.entered = True
+            raise TimeoutError("temporary")
+
+    fake = FailingEnterClient()
+
+    async def factory(_settings: Settings) -> FailingEnterClient:
+        return fake
+
+    backend = NotebookLMBackend(
+        Settings(),
+        client_factory=factory,
+        retry_wait_strategy=wait_none(),
+        retry_sleep=_no_sleep,
+    )
+
+    with raises(BackendTimeoutError):
+        await backend.connect()
+
+    assert fake.entered is True
+    assert fake.exited is True
+
+
+async def test_backend_reconnects_after_retryable_operation_error() -> None:
+    clients: list[FakeNotebookLMClient] = []
+
+    async def factory(_settings: Settings) -> FakeNotebookLMClient:
+        client = FakeNotebookLMClient()
+        if not clients:
+            client.notebooks.error = TimeoutError("temporary")
+        clients.append(client)
+        return client
+
+    backend = NotebookLMBackend(
+        Settings(),
+        client_factory=factory,
+        retry_wait_strategy=wait_none(),
+        retry_sleep=_no_sleep,
+    )
+
+    try:
+        assert await backend.list_notebooks() == [{"id": "nb-1", "title": "Notebook"}]
+    finally:
+        await backend.close()
+
+    assert len(clients) == EXPECTED_RECONNECT_CLIENTS
+    assert clients[0].exited is True
+    assert clients[1].exited is True
+
+
+async def test_backend_retries_retryable_connection_error() -> None:
+    attempts = 0
+    fake = FakeNotebookLMClient()
+
+    async def factory(_settings: Settings) -> FakeNotebookLMClient:
+        nonlocal attempts
+        attempts += 1
+        if attempts == 1:
+            raise TimeoutError("temporary")
+        return fake
+
+    backend = NotebookLMBackend(
+        Settings(),
+        client_factory=factory,
+        retry_wait_strategy=wait_none(),
+        retry_sleep=_no_sleep,
+    )
+
+    try:
+        assert await backend.list_notebooks() == [{"id": "nb-1", "title": "Notebook"}]
+    finally:
+        await backend.close()
+
+    assert attempts == EXPECTED_RECONNECT_CLIENTS
+    assert fake.exited is True
+
+
+async def test_backend_does_not_retry_mutating_operations() -> None:
+    fake = FakeNotebookLMClient()
+    fake.notebooks.create_error = TimeoutError("temporary")
+
+    async def factory(_settings: Settings) -> FakeNotebookLMClient:
+        return fake
+
+    backend = NotebookLMBackend(
+        Settings(),
+        client_factory=factory,
+        retry_wait_strategy=wait_none(),
+        retry_sleep=_no_sleep,
+    )
+
+    try:
+        with raises(BackendTimeoutError):
+            await backend.create_notebook("New")
+    finally:
+        await backend.close()
+
+    assert fake.notebooks.calls == [("create", ("New",))]
+
+
+async def test_backend_does_not_retry_chat_questions() -> None:
+    fake = FakeNotebookLMClient()
+    fake.chat.error = TimeoutError("temporary")
+
+    async def factory(_settings: Settings) -> FakeNotebookLMClient:
+        return fake
+
+    backend = NotebookLMBackend(
+        Settings(),
+        client_factory=factory,
+        retry_wait_strategy=wait_none(),
+        retry_sleep=_no_sleep,
+    )
+
+    try:
+        with raises(BackendTimeoutError):
+            await backend.ask("nb-1", "Question?", conversation_id="conv-1")
+    finally:
+        await backend.close()
+
+    assert fake.chat.calls == [("ask", ("nb-1", "Question?", None, "conv-1"))]
+
+
+async def test_backend_close_suppresses_client_exit_errors() -> None:
+    class FailingExitClient(FakeNotebookLMClient):
+        async def __aexit__(self, exc_type: object, exc_value: object, traceback: object) -> None:
+            self.exited = True
+            raise RuntimeError("cleanup failed")
+
+    fake = FailingExitClient()
+
+    async def factory(_settings: Settings) -> FailingExitClient:
+        return fake
+
+    backend = NotebookLMBackend(
+        Settings(),
+        client_factory=factory,
+        retry_wait_strategy=wait_none(),
+        retry_sleep=_no_sleep,
+    )
+
+    await backend.connect()
+    await backend.close()
+
+    assert fake.exited is True
+
+
+def test_resolve_auth_source_prefers_inline_json(tmp_path: Path) -> None:
+    auth_file = tmp_path / "missing.json"
+    settings = Settings(
+        notebooklm_auth_json=SecretStr('{"cookies": []}'),
+        notebooklm_auth_file=auth_file,
+    )
+
+    assert resolve_auth_source(settings) == AuthSource(kind="env_json", value='{"cookies": []}')
+
+
+def test_resolve_auth_source_uses_existing_file(tmp_path: Path) -> None:
+    auth_file = tmp_path / "storage.json"
+    auth_file.write_text('{"cookies": []}', encoding="utf-8")
+
+    source = resolve_auth_source(Settings(notebooklm_auth_file=auth_file))
+
+    assert source == AuthSource(kind="file", value=str(auth_file))
+
+
+def test_resolve_auth_source_uses_notebooklm_default_when_project_default_missing(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    default_path = tmp_path / "missing-default.json"
+    monkeypatch.setattr(client_module, "DEFAULT_NOTEBOOKLM_AUTH_FILE", default_path)
+
+    source = resolve_auth_source(Settings(notebooklm_auth_file=default_path))
+
+    assert source == AuthSource(kind="default", value="")
+
+
+def test_resolve_auth_source_rejects_missing_file(tmp_path: Path) -> None:
+    with raises(BackendAuthError) as exc_info:
+        resolve_auth_source(Settings(notebooklm_auth_file=tmp_path / "missing.json"))
+
+    assert exc_info.value.error_code == AUTH_ERROR_CODE
+
+
+async def test_default_client_factory_sets_notebooklm_auth_json_env(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    captured: dict[str, str | None] = {}
+
+    class FakeNotebookLMClientClass:
+        @classmethod
+        async def from_storage(
+            cls,
+            path: str | None = None,
+            timeout: float = 30.0,
+        ) -> FakeNotebookLMClient:
+            captured["path"] = path
+            captured["auth_json"] = __import__("os").environ.get("NOTEBOOKLM_AUTH_JSON")
+            captured["timeout"] = str(timeout)
+            return FakeNotebookLMClient()
+
+    monkeypatch.setattr("nlm_mcp.backend.client.NotebookLMClient", FakeNotebookLMClientClass)
+
+    backend = NotebookLMBackend(
+        Settings(notebooklm_auth_json=SecretStr('{"cookies": []}')),
+        retry_wait_strategy=wait_none(),
+        retry_sleep=_no_sleep,
+    )
+
+    await backend.connect()
+    await backend.close()
+
+    assert captured == {
+        "path": None,
+        "auth_json": '{"cookies": []}',
+        "timeout": "30.0",
+    }

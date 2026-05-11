@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-05-11
+
+### Added
+
+- Async NotebookLM backend wrapper around `notebooklm-py`.
+- Safe backend exception mapping for MCP-compatible error responses.
+- Tenacity retry policy for rate-limit, timeout, server, and network failures.
+- Offline unit coverage for auth source resolution, retry behavior, and wrapper delegation.
+
 ## [0.1.0] - 2026-05-11
 
 ### Added

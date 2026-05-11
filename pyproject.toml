@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "notebooklm-mcp-pro"
-version = "0.1.0"
+version = "0.2.0"
 description = "Production-grade MCP server for Google NotebookLM."
 readme = "README.md"
 requires-python = ">=3.11,<3.14"
@@ -106,6 +106,10 @@ strict = true
 disallow_untyped_defs = true
 warn_unused_ignores = true
 mypy_path = "src"
+
+[[tool.mypy.overrides]]
+module = ["notebooklm", "notebooklm.*"]
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

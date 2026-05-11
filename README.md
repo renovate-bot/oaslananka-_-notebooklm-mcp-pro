@@ -20,7 +20,7 @@ make run-stdio
 
 ## Status
 
-The bootstrap release provides packaging, local developer commands, governance files, and baseline CI. Feature documentation is filled in as the implementation milestones land.
+The core server skeleton now provides a FastMCP server factory, validated settings, structured logging, stdio transport wiring, and `admin.health` / `admin.version` tools. NotebookLM workflow tools, remote authentication, UI resources, deployment templates, and full documentation are added in the subsequent implementation milestones.
 
 ## License
 

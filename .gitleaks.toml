@@ -1,0 +1,12 @@
+title = "notebooklm-mcp-pro gitleaks config"
+
+[allowlist]
+paths = [
+  '''(^|/)\.audit-requirements\.txt$''',
+  '''(^|/)gitleaks-report\.json$''',
+  '''(^|/)\.venv/''',
+  '''(^|/)build/''',
+  '''(^|/)dist/''',
+  '''(^|/)htmlcov/''',
+  '''(^|/)site/''',
+]

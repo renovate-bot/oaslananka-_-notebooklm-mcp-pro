@@ -1,0 +1,7 @@
+site_name: notebooklm-mcp-pro
+site_url: https://oaslananka-lab.github.io/notebooklm-mcp-pro/
+repo_url: https://github.com/oaslananka-lab/notebooklm-mcp-pro
+theme:
+  name: material
+nav:
+  - Home: index.md

@@ -1,0 +1,23 @@
+name: E2E
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    name: e2e
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: uv sync --extra dev --extra browser
+      - run: uv run pytest -m e2e tests/e2e --no-cov
+        env:
+          NLM_MCP_RUN_E2E: "1"
+          NLM_MCP_NOTEBOOKLM_AUTH_JSON: ${{ secrets.NLM_MCP_NOTEBOOKLM_AUTH_JSON }}

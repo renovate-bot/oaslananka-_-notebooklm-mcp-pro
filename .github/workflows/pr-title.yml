@@ -1,0 +1,28 @@
+name: PR Title
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  pull-requests: read
+
+jobs:
+  validate:
+    name: pr-title
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate Conventional Commit title
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          python - <<'PY'
+          import os
+          import re
+          import sys
+
+          title = os.environ["PR_TITLE"]
+          if not re.match(r"^(feat|fix|docs|test|refactor|ci|build|chore|perf)(\([^)]+\))?: .+", title):
+              print(f"Invalid PR title: {title}", file=sys.stderr)
+              sys.exit(1)
+          PY

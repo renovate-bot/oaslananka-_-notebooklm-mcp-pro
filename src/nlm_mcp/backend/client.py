@@ -11,7 +11,20 @@ from pathlib import Path
 from typing import Any, Literal, TypeVar
 
 from notebooklm import NotebookLMClient
-from notebooklm.rpc.types import SharePermission
+from notebooklm.rpc.types import (
+    AudioFormat,
+    AudioLength,
+    InfographicDetail,
+    InfographicOrientation,
+    QuizDifficulty,
+    QuizQuantity,
+    ReportFormat,
+    SharePermission,
+    SlideDeckFormat,
+    SlideDeckLength,
+    VideoFormat,
+    VideoStyle,
+)
 
 from nlm_mcp.backend.exceptions import (
     BackendAuthError,
@@ -26,6 +39,29 @@ T = TypeVar("T")
 ClientFactory = Callable[[Settings], Awaitable[Any]]
 _AUTH_ENV_LOCK = asyncio.Lock()
 DEFAULT_NOTEBOOKLM_AUTH_FILE = Path("~/.config/nlm-mcp/notebooklm_auth.json").expanduser()
+ARTIFACT_DOWNLOAD_METHODS = {
+    "audio": "download_audio",
+    "video": "download_video",
+    "infographic": "download_infographic",
+    "slide_deck": "download_slide_deck",
+    "report": "download_report",
+    "mind_map": "download_mind_map",
+    "data_table": "download_data_table",
+    "quiz": "download_quiz",
+    "flashcards": "download_flashcards",
+}
+
+ARTIFACT_OUTPUT_FORMATS = {
+    "quiz": {"json", "markdown", "html"},
+    "flashcards": {"json", "markdown", "html"},
+    "slide_deck": {"pdf", "pptx"},
+}
+
+
+def _normalize_output_format(output_format: str | None) -> str | None:
+    if output_format == "md":
+        return "markdown"
+    return output_format
 
 
 @dataclass(frozen=True)
@@ -66,6 +102,19 @@ def _temporary_env(name: str, value: str) -> Iterator[None]:
             os.environ.pop(name, None)
         else:
             os.environ[name] = previous
+
+
+def _enum_member(enum_type: Any, value: str | None) -> Any:
+    if value is None:
+        return None
+    member = enum_type.__members__.get(value.upper())
+    if member is None:
+        raise BackendValidationError(
+            "Unsupported NotebookLM option.",
+            error_code=-32602,
+            data={"enum": getattr(enum_type, "__name__", str(enum_type)), "value": value},
+        )
+    return member
 
 
 async def create_notebooklm_client(settings: Settings, *, timeout: float = 30.0) -> Any:
@@ -428,5 +477,372 @@ class NotebookLMBackend:
         return await self._call(
             "chat.save_to_notes",
             lambda client: client.notes.create(notebook_id, title=title, content=content),
+            retry=False,
+        )
+
+    async def start_research(
+        self,
+        notebook_id: str,
+        query: str,
+        *,
+        source: Literal["web", "drive"] = "web",
+        mode: Literal["fast", "deep"] = "fast",
+    ) -> Any:
+        """Start a NotebookLM research task."""
+        return await self._call(
+            f"research.{source}_start",
+            lambda client: client.research.start(notebook_id, query, source=source, mode=mode),
+            retry=False,
+        )
+
+    async def research_status(self, notebook_id: str) -> Any:
+        """Poll the latest NotebookLM research task for a notebook."""
+        return await self._call(
+            "research.status",
+            lambda client: client.research.poll(notebook_id),
+        )
+
+    async def import_research_sources(
+        self,
+        notebook_id: str,
+        task_id: str,
+        sources: list[dict[str, Any]],
+    ) -> Any:
+        """Import selected research sources into a NotebookLM notebook."""
+        return await self._call(
+            "research.import_sources",
+            lambda client: client.research.import_sources(notebook_id, task_id, sources),
+            retry=False,
+        )
+
+    async def generate_audio_overview(
+        self,
+        notebook_id: str,
+        *,
+        source_ids: list[str] | None = None,
+        language: str = "en",
+        instructions: str | None = None,
+        audio_format: str = "deep_dive",
+        audio_length: str = "default",
+    ) -> Any:
+        """Generate an audio overview artifact."""
+        return await self._call(
+            "generate.audio_overview",
+            lambda client: client.artifacts.generate_audio(
+                notebook_id,
+                source_ids=source_ids,
+                language=language,
+                instructions=instructions,
+                audio_format=_enum_member(AudioFormat, audio_format),
+                audio_length=_enum_member(AudioLength, audio_length),
+            ),
+            retry=False,
+        )
+
+    async def generate_video_overview(
+        self,
+        notebook_id: str,
+        *,
+        source_ids: list[str] | None = None,
+        language: str = "en",
+        instructions: str | None = None,
+        video_format: str = "explainer",
+        video_style: str = "auto_select",
+    ) -> Any:
+        """Generate a video overview artifact."""
+        return await self._call(
+            "generate.video_overview",
+            lambda client: client.artifacts.generate_video(
+                notebook_id,
+                source_ids=source_ids,
+                language=language,
+                instructions=instructions,
+                video_format=_enum_member(VideoFormat, video_format),
+                video_style=_enum_member(VideoStyle, video_style),
+            ),
+            retry=False,
+        )
+
+    async def generate_cinematic_video(
+        self,
+        notebook_id: str,
+        *,
+        source_ids: list[str] | None = None,
+        language: str = "en",
+        instructions: str | None = None,
+    ) -> Any:
+        """Generate a cinematic video artifact via notebooklm-py's video API."""
+        return await self._call(
+            "generate.cinematic_video",
+            lambda client: client.artifacts.generate_video(
+                notebook_id,
+                source_ids=source_ids,
+                language=language,
+                instructions=instructions,
+            ),
+            retry=False,
+        )
+
+    async def generate_slide_deck(
+        self,
+        notebook_id: str,
+        *,
+        source_ids: list[str] | None = None,
+        language: str = "en",
+        instructions: str | None = None,
+        slide_format: str = "detailed_deck",
+        slide_length: str = "default",
+    ) -> Any:
+        """Generate a slide deck artifact."""
+        return await self._call(
+            "generate.slide_deck",
+            lambda client: client.artifacts.generate_slide_deck(
+                notebook_id,
+                source_ids=source_ids,
+                language=language,
+                instructions=instructions,
+                slide_format=_enum_member(SlideDeckFormat, slide_format),
+                slide_length=_enum_member(SlideDeckLength, slide_length),
+            ),
+            retry=False,
+        )
+
+    async def generate_infographic(
+        self,
+        notebook_id: str,
+        *,
+        source_ids: list[str] | None = None,
+        language: str = "en",
+        instructions: str | None = None,
+        orientation: str = "landscape",
+        detail_level: str = "standard",
+    ) -> Any:
+        """Generate an infographic artifact."""
+        return await self._call(
+            "generate.infographic",
+            lambda client: client.artifacts.generate_infographic(
+                notebook_id,
+                source_ids=source_ids,
+                language=language,
+                instructions=instructions,
+                orientation=_enum_member(InfographicOrientation, orientation),
+                detail_level=_enum_member(InfographicDetail, detail_level),
+            ),
+            retry=False,
+        )
+
+    async def generate_quiz(
+        self,
+        notebook_id: str,
+        *,
+        source_ids: list[str] | None = None,
+        instructions: str | None = None,
+        quantity: str = "standard",
+        difficulty: str = "medium",
+    ) -> Any:
+        """Generate a quiz artifact."""
+        return await self._call(
+            "generate.quiz",
+            lambda client: client.artifacts.generate_quiz(
+                notebook_id,
+                source_ids=source_ids,
+                instructions=instructions,
+                quantity=_enum_member(QuizQuantity, quantity),
+                difficulty=_enum_member(QuizDifficulty, difficulty),
+            ),
+            retry=False,
+        )
+
+    async def generate_flashcards(
+        self,
+        notebook_id: str,
+        *,
+        source_ids: list[str] | None = None,
+        instructions: str | None = None,
+        quantity: str = "standard",
+        difficulty: str = "medium",
+    ) -> Any:
+        """Generate flashcard artifacts."""
+        return await self._call(
+            "generate.flashcards",
+            lambda client: client.artifacts.generate_flashcards(
+                notebook_id,
+                source_ids=source_ids,
+                instructions=instructions,
+                quantity=_enum_member(QuizQuantity, quantity),
+                difficulty=_enum_member(QuizDifficulty, difficulty),
+            ),
+            retry=False,
+        )
+
+    async def generate_report(
+        self,
+        notebook_id: str,
+        *,
+        source_ids: list[str] | None = None,
+        language: str = "en",
+        report_format: str = "briefing_doc",
+        custom_prompt: str | None = None,
+        extra_instructions: str | None = None,
+    ) -> Any:
+        """Generate a report artifact."""
+        return await self._call(
+            "generate.report",
+            lambda client: client.artifacts.generate_report(
+                notebook_id,
+                report_format=_enum_member(ReportFormat, report_format),
+                source_ids=source_ids,
+                language=language,
+                custom_prompt=custom_prompt,
+                extra_instructions=extra_instructions,
+            ),
+            retry=False,
+        )
+
+    async def generate_data_table(
+        self,
+        notebook_id: str,
+        *,
+        source_ids: list[str] | None = None,
+        language: str = "en",
+        instructions: str | None = None,
+    ) -> Any:
+        """Generate a data table artifact."""
+        return await self._call(
+            "generate.data_table",
+            lambda client: client.artifacts.generate_data_table(
+                notebook_id,
+                source_ids=source_ids,
+                language=language,
+                instructions=instructions,
+            ),
+            retry=False,
+        )
+
+    async def generate_mind_map(
+        self,
+        notebook_id: str,
+        *,
+        source_ids: list[str] | None = None,
+    ) -> Any:
+        """Generate a mind map artifact."""
+        return await self._call(
+            "generate.mind_map",
+            lambda client: client.artifacts.generate_mind_map(
+                notebook_id,
+                source_ids=source_ids,
+            ),
+            retry=False,
+        )
+
+    async def artifact_status(self, notebook_id: str, task_id: str) -> Any:
+        """Poll a NotebookLM artifact task."""
+        return await self._call(
+            "artifact.status",
+            lambda client: client.artifacts.poll_status(notebook_id, task_id),
+        )
+
+    async def artifact_wait(
+        self,
+        notebook_id: str,
+        task_id: str,
+        *,
+        initial_interval: float,
+        max_interval: float,
+        timeout: float,
+    ) -> Any:
+        """Wait for a NotebookLM artifact task to complete."""
+        return await self._call(
+            "artifact.wait",
+            lambda client: client.artifacts.wait_for_completion(
+                notebook_id,
+                task_id,
+                initial_interval=initial_interval,
+                max_interval=max_interval,
+                timeout=timeout,
+            ),
+        )
+
+    async def artifact_list(self, notebook_id: str, artifact_type: str | None = None) -> Any:
+        """List NotebookLM artifacts for a notebook."""
+
+        async def operation(client: Any) -> Any:
+            if artifact_type is None:
+                return await client.artifacts.list(notebook_id)
+            from notebooklm.types import ArtifactType  # noqa: PLC0415
+
+            return await client.artifacts.list(notebook_id, ArtifactType(artifact_type))
+
+        return await self._call("artifact.list", operation)
+
+    async def artifact_download(
+        self,
+        notebook_id: str,
+        artifact_type: str,
+        output_path: str,
+        *,
+        artifact_id: str | None = None,
+        output_format: str | None = None,
+    ) -> Any:
+        """Download a NotebookLM artifact to a local path."""
+        if artifact_type not in ARTIFACT_DOWNLOAD_METHODS:
+            raise BackendValidationError(
+                "Unsupported artifact type.",
+                error_code=-32602,
+                data={"artifact_type": artifact_type},
+            )
+        normalized_format = _normalize_output_format(output_format)
+        allowed_formats = ARTIFACT_OUTPUT_FORMATS.get(artifact_type)
+        if normalized_format is not None and normalized_format not in (allowed_formats or set()):
+            raise BackendValidationError(
+                "Unsupported artifact output format.",
+                error_code=-32602,
+                data={"artifact_type": artifact_type, "output_format": output_format},
+            )
+
+        async def operation(client: Any) -> Any:
+            method = getattr(client.artifacts, ARTIFACT_DOWNLOAD_METHODS[artifact_type])
+            if normalized_format is not None:
+                return await method(
+                    notebook_id,
+                    output_path,
+                    artifact_id=artifact_id,
+                    output_format=normalized_format,
+                )
+            return await method(notebook_id, output_path, artifact_id=artifact_id)
+
+        return await self._call("artifact.download", operation)
+
+    async def revise_slide(
+        self,
+        notebook_id: str,
+        artifact_id: str,
+        slide_index: int,
+        prompt: str,
+    ) -> Any:
+        """Revise a slide in a generated slide deck."""
+        return await self._call(
+            "artifact.revise_slide",
+            lambda client: client.artifacts.revise_slide(
+                notebook_id,
+                artifact_id,
+                slide_index,
+                prompt,
+            ),
+            retry=False,
+        )
+
+    async def get_language(self) -> Any:
+        """Get the global NotebookLM output language."""
+        return await self._call(
+            "language.get",
+            lambda client: client.settings.get_output_language(),
+        )
+
+    async def set_language(self, language: str) -> Any:
+        """Set the global NotebookLM output language."""
+        return await self._call(
+            "language.set",
+            lambda client: client.settings.set_output_language(language),
             retry=False,
         )

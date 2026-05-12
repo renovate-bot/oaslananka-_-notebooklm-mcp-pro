@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-05-12
+
+### Added
+
+- Research, artifact generation, artifact lifecycle, and language tool families.
+- Persistent SQLite task tracking for artifact task ids and artifact metadata resources.
+- Mind-map and artifact resources for generated NotebookLM content.
+- Four typed workflow prompts for research summaries, study packs, meeting podcasts, and paper deep dives.
+- Offline coverage for artifact generation, task polling, downloads, research import flow, language confirmation, prompts, and resources.
+
 ## [0.3.0] - 2026-05-11
 
 ### Added

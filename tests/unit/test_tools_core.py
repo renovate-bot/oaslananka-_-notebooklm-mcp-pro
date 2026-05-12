@@ -448,11 +448,11 @@ async def test_core_resources_are_registered_and_resolve() -> None:
         fulltext = await client.read_resource("notebooklm://notebook/nb-1/source/src-1/fulltext")
 
     assert {str(resource.uri) for resource in resources} == {"notebooklm://notebooks"}
-    assert {template.uriTemplate for template in templates} == {
+    assert {
         "notebooklm://notebook/{id}",
         "notebooklm://notebook/{id}/source/{src_id}",
         "notebooklm://notebook/{id}/source/{src_id}/fulltext",
-    }
+    }.issubset({template.uriTemplate for template in templates})
     assert json.loads(notebooks[0].text)["notebooks"][0]["id"] == "nb-1"
     assert json.loads(notebook[0].text)["notebook"]["id"] == "nb-1"
     assert json.loads(fulltext[0].text)["fulltext"]["text"] == "indexed text"

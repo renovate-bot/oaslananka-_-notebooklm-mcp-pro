@@ -20,7 +20,7 @@ make run-stdio
 
 ## Status
 
-The server now provides the FastMCP factory, validated settings, structured logging, stdio transport wiring, admin tools, a `notebooklm-py` backend wrapper, and the core notebook, source, chat, `search`, and `fetch` tool families. Artifact generation, remote authentication, UI resources, deployment templates, and full documentation are added in the subsequent implementation milestones.
+The server now provides the FastMCP factory, validated settings, structured logging, stdio transport wiring, admin tools, a `notebooklm-py` backend wrapper, the core notebook, source, chat, `search`, and `fetch` tool families, plus research, artifact generation, artifact lifecycle, language tools, artifact resources, and typed workflow prompts. Remote authentication, UI resources, deployment templates, and full documentation are added in the subsequent implementation milestones.
 
 ## License
 

@@ -172,3 +172,165 @@ class FetchOutput(StrictModel):
     title: str
     content: str
     metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+ResearchMode = Literal["fast", "deep"]
+ArtifactTypeName = Literal[
+    "audio",
+    "video",
+    "report",
+    "quiz",
+    "flashcards",
+    "mind_map",
+    "infographic",
+    "slide_deck",
+    "data_table",
+]
+
+
+class ResearchStartInput(NotebookIdInput):
+    """Input for research start tools."""
+
+    query: str = Field(min_length=1, max_length=1000)
+    mode: ResearchMode = "fast"
+
+
+class ResearchWaitInput(NotebookIdInput):
+    """Input for `research.wait`."""
+
+    task_id: str | None = Field(default=None, min_length=1)
+    poll_interval_sec: int = Field(default=15, ge=1)
+    timeout_sec: int = Field(default=600, ge=1)
+    auto_import: bool = False
+    max_sources: int = Field(default=10, ge=1, le=100)
+
+
+class GenerationBaseInput(NotebookIdInput):
+    """Common generation input."""
+
+    source_ids: list[str] | None = None
+    language: str = Field(default="en", min_length=1)
+    instructions: str | None = Field(default=None, max_length=4000)
+
+
+class AudioOverviewInput(GenerationBaseInput):
+    """Input for `generate.audio_overview`."""
+
+    audio_format: Literal["deep_dive", "brief", "critique", "debate"] = "deep_dive"
+    audio_length: Literal["short", "default", "long"] = "default"
+
+
+class VideoOverviewInput(GenerationBaseInput):
+    """Input for `generate.video_overview`."""
+
+    video_format: Literal["explainer", "brief"] = "explainer"
+    video_style: Literal[
+        "auto_select",
+        "custom",
+        "classic",
+        "whiteboard",
+        "kawaii",
+        "anime",
+        "watercolor",
+        "retro_print",
+        "heritage",
+        "paper_craft",
+    ] = "auto_select"
+
+
+class CinematicVideoInput(GenerationBaseInput):
+    """Input for `generate.cinematic_video`."""
+
+
+class SlideDeckInput(GenerationBaseInput):
+    """Input for `generate.slide_deck`."""
+
+    slide_format: Literal["detailed_deck", "presenter_slides"] = "detailed_deck"
+    slide_length: Literal["default", "short"] = "default"
+
+
+class InfographicInput(GenerationBaseInput):
+    """Input for `generate.infographic`."""
+
+    orientation: Literal["landscape", "portrait", "square"] = "landscape"
+    detail_level: Literal["concise", "standard", "detailed"] = "standard"
+
+
+class QuizLikeInput(NotebookIdInput):
+    """Input shared by quiz and flashcards tools."""
+
+    source_ids: list[str] | None = None
+    instructions: str | None = Field(default=None, max_length=4000)
+    quantity: Literal["fewer", "standard", "more"] = "standard"
+    difficulty: Literal["easy", "medium", "hard"] = "medium"
+
+
+class ReportInput(GenerationBaseInput):
+    """Input for `generate.report`."""
+
+    report_format: Literal["briefing_doc", "study_guide", "blog_post", "custom"] = "briefing_doc"
+    custom_prompt: str | None = Field(default=None, max_length=8000)
+    extra_instructions: str | None = Field(default=None, max_length=4000)
+
+
+class DataTableInput(GenerationBaseInput):
+    """Input for `generate.data_table`."""
+
+
+class MindMapInput(NotebookIdInput):
+    """Input for `generate.mind_map`."""
+
+    source_ids: list[str] | None = None
+
+
+class GenerationTaskOutput(StrictModel):
+    """Output returned when an artifact task is submitted."""
+
+    task_id: str
+    status: str
+    notebook_id: str
+    artifact_type: str
+    result: Any
+
+
+class ArtifactStatusInput(NotebookIdInput):
+    """Input for artifact task status tools."""
+
+    task_id: str = Field(min_length=1)
+
+
+class ArtifactWaitInput(ArtifactStatusInput):
+    """Input for `artifact.wait`."""
+
+    poll_interval_sec: int = Field(default=15, ge=1)
+    timeout_sec: int = Field(default=600, ge=1)
+
+
+class ArtifactListInput(NotebookIdInput):
+    """Input for `artifact.list`."""
+
+    artifact_type: ArtifactTypeName | None = None
+
+
+class ArtifactDownloadInput(NotebookIdInput):
+    """Input for `artifact.download`."""
+
+    artifact_type: ArtifactTypeName
+    output_path: str = Field(min_length=1)
+    artifact_id: str | None = Field(default=None, min_length=1)
+    output_format: Literal["json", "md", "markdown", "html", "pdf", "pptx"] | None = None
+
+
+class ReviseSlideInput(NotebookIdInput):
+    """Input for `artifact.revise_slide`."""
+
+    artifact_id: str = Field(min_length=1)
+    slide_index: int = Field(ge=0)
+    prompt: str = Field(min_length=1, max_length=4000)
+
+
+class LanguageSetInput(StrictModel):
+    """Input for `language.set`."""
+
+    language: str = Field(min_length=1)
+    confirm: bool = False

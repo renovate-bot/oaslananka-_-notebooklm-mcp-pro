@@ -11,12 +11,19 @@ from tenacity import wait_none
 
 import nlm_mcp.backend.client as client_module
 from nlm_mcp.backend.client import AuthSource, NotebookLMBackend, resolve_auth_source
-from nlm_mcp.backend.exceptions import BackendAuthError, BackendRateLimitError, BackendTimeoutError
+from nlm_mcp.backend.exceptions import (
+    BackendAuthError,
+    BackendRateLimitError,
+    BackendTimeoutError,
+    BackendValidationError,
+)
 from nlm_mcp.config import Settings
 
 AUTH_ERROR_CODE = -32002
+VALIDATION_ERROR_CODE = -32602
 MAX_RETRY_ATTEMPTS = 5
 EXPECTED_RECONNECT_CLIENTS = 2
+EXPECTED_VIDEO_GENERATE_CALLS = 2
 RETRY_AFTER_SECONDS = 3
 
 
@@ -94,11 +101,142 @@ class FakeChatAPI:
         return {"answer": "response", "citations": []}
 
 
+class FakeResearchAPI:
+    def __init__(self) -> None:
+        self.calls: list[tuple[str, tuple[Any, ...], dict[str, Any]]] = []
+
+    async def start(
+        self,
+        notebook_id: str,
+        query: str,
+        *,
+        source: str = "web",
+        mode: str = "fast",
+    ) -> dict[str, Any]:
+        self.calls.append(("start", (notebook_id, query), {"source": source, "mode": mode}))
+        return {"task_id": "research-1", "source": source, "mode": mode}
+
+    async def poll(self, notebook_id: str) -> dict[str, str]:
+        self.calls.append(("poll", (notebook_id,), {}))
+        return {"task_id": "research-1", "status": "completed"}
+
+    async def import_sources(
+        self,
+        notebook_id: str,
+        task_id: str,
+        sources: list[dict[str, Any]],
+    ) -> list[dict[str, str]]:
+        self.calls.append(("import_sources", (notebook_id, task_id, sources), {}))
+        return [{"id": "src-1", "title": "Imported"}]
+
+
+class FakeArtifactsAPI:
+    def __init__(self) -> None:
+        self.calls: list[tuple[str, tuple[Any, ...], dict[str, Any]]] = []
+
+    async def generate_audio(self, notebook_id: str, **kwargs: Any) -> dict[str, str]:
+        self.calls.append(("generate_audio", (notebook_id,), kwargs))
+        return {"task_id": "audio-1", "status": "pending"}
+
+    async def generate_video(self, notebook_id: str, **kwargs: Any) -> dict[str, str]:
+        self.calls.append(("generate_video", (notebook_id,), kwargs))
+        return {"task_id": "video-1", "status": "pending"}
+
+    async def generate_slide_deck(self, notebook_id: str, **kwargs: Any) -> dict[str, str]:
+        self.calls.append(("generate_slide_deck", (notebook_id,), kwargs))
+        return {"task_id": "slides-1", "status": "pending"}
+
+    async def generate_infographic(self, notebook_id: str, **kwargs: Any) -> dict[str, str]:
+        self.calls.append(("generate_infographic", (notebook_id,), kwargs))
+        return {"task_id": "info-1", "status": "pending"}
+
+    async def generate_quiz(self, notebook_id: str, **kwargs: Any) -> dict[str, str]:
+        self.calls.append(("generate_quiz", (notebook_id,), kwargs))
+        return {"task_id": "quiz-1", "status": "pending"}
+
+    async def generate_flashcards(self, notebook_id: str, **kwargs: Any) -> dict[str, str]:
+        self.calls.append(("generate_flashcards", (notebook_id,), kwargs))
+        return {"task_id": "cards-1", "status": "pending"}
+
+    async def generate_report(self, notebook_id: str, **kwargs: Any) -> dict[str, str]:
+        self.calls.append(("generate_report", (notebook_id,), kwargs))
+        return {"task_id": "report-1", "status": "pending"}
+
+    async def generate_data_table(self, notebook_id: str, **kwargs: Any) -> dict[str, str]:
+        self.calls.append(("generate_data_table", (notebook_id,), kwargs))
+        return {"task_id": "table-1", "status": "pending"}
+
+    async def generate_mind_map(self, notebook_id: str, **kwargs: Any) -> dict[str, str]:
+        self.calls.append(("generate_mind_map", (notebook_id,), kwargs))
+        return {"note_id": "mind-1"}
+
+    async def poll_status(self, notebook_id: str, task_id: str) -> dict[str, str]:
+        self.calls.append(("poll_status", (notebook_id, task_id), {}))
+        return {"task_id": task_id, "status": "completed"}
+
+    async def wait_for_completion(
+        self, notebook_id: str, task_id: str, **kwargs: Any
+    ) -> dict[str, str]:
+        self.calls.append(("wait_for_completion", (notebook_id, task_id), kwargs))
+        return {"task_id": task_id, "status": "completed"}
+
+    async def list(
+        self, notebook_id: str, artifact_type: Any | None = None
+    ) -> list[dict[str, str]]:
+        self.calls.append(("list", (notebook_id, artifact_type), {}))
+        return [{"id": "artifact-1", "kind": str(artifact_type or "all")}]
+
+    async def download_quiz(
+        self,
+        notebook_id: str,
+        output_path: str,
+        *,
+        artifact_id: str | None = None,
+        output_format: str = "json",
+    ) -> str:
+        self.calls.append(
+            (
+                "download_quiz",
+                (notebook_id, output_path),
+                {"artifact_id": artifact_id, "output_format": output_format},
+            )
+        )
+        return output_path
+
+    async def revise_slide(
+        self,
+        notebook_id: str,
+        artifact_id: str,
+        slide_index: int,
+        prompt: str,
+    ) -> dict[str, str]:
+        self.calls.append(("revise_slide", (notebook_id, artifact_id, slide_index, prompt), {}))
+        return {"task_id": "revision-1", "status": "pending"}
+
+
+class FakeSettingsAPI:
+    def __init__(self) -> None:
+        self.calls: list[tuple[str, tuple[Any, ...]]] = []
+        self.language = "en"
+
+    async def get_output_language(self) -> str:
+        self.calls.append(("get_output_language", ()))
+        return self.language
+
+    async def set_output_language(self, language: str) -> str:
+        self.calls.append(("set_output_language", (language,)))
+        self.language = language
+        return language
+
+
 class FakeNotebookLMClient:
     def __init__(self) -> None:
         self.notebooks = FakeNotebooksAPI()
         self.sources = FakeSourcesAPI()
         self.chat = FakeChatAPI()
+        self.research = FakeResearchAPI()
+        self.artifacts = FakeArtifactsAPI()
+        self.settings = FakeSettingsAPI()
         self.entered = False
         self.exited = False
 
@@ -184,6 +322,139 @@ async def test_backend_delegates_source_and_chat_operations() -> None:
             ("get_fulltext", ("nb-1", "src-1")),
         ]
         assert fake.chat.calls == [("ask", ("nb-1", "Question?", ["src-1"], None))]
+    finally:
+        await backend.close()
+
+
+async def test_backend_delegates_research_artifact_and_language_operations() -> None:
+    fake = FakeNotebookLMClient()
+
+    async def factory(_settings: Settings) -> FakeNotebookLMClient:
+        return fake
+
+    backend = NotebookLMBackend(
+        Settings(),
+        client_factory=factory,
+        retry_wait_strategy=wait_none(),
+        retry_sleep=_no_sleep,
+    )
+
+    try:
+        assert await backend.start_research("nb-1", "topic", source="web", mode="deep") == {
+            "task_id": "research-1",
+            "source": "web",
+            "mode": "deep",
+        }
+        assert await backend.research_status("nb-1") == {
+            "task_id": "research-1",
+            "status": "completed",
+        }
+        assert await backend.import_research_sources(
+            "nb-1", "research-1", [{"url": "https://example.com", "title": "Example"}]
+        ) == [{"id": "src-1", "title": "Imported"}]
+        assert (await backend.generate_audio_overview("nb-1"))["task_id"] == "audio-1"
+        assert (await backend.generate_video_overview("nb-1"))["task_id"] == "video-1"
+        assert (await backend.generate_cinematic_video("nb-1"))["task_id"] == "video-1"
+        assert (await backend.generate_slide_deck("nb-1"))["task_id"] == "slides-1"
+        assert (await backend.generate_infographic("nb-1"))["task_id"] == "info-1"
+        assert (await backend.generate_quiz("nb-1"))["task_id"] == "quiz-1"
+        assert (await backend.generate_flashcards("nb-1"))["task_id"] == "cards-1"
+        assert (await backend.generate_report("nb-1"))["task_id"] == "report-1"
+        assert (await backend.generate_data_table("nb-1"))["task_id"] == "table-1"
+        assert await backend.generate_mind_map("nb-1") == {"note_id": "mind-1"}
+        assert await backend.artifact_status("nb-1", "audio-1") == {
+            "task_id": "audio-1",
+            "status": "completed",
+        }
+        assert (
+            await backend.artifact_wait(
+                "nb-1",
+                "audio-1",
+                initial_interval=1.0,
+                max_interval=1.0,
+                timeout=2.0,
+            )
+        )["status"] == "completed"
+        assert await backend.artifact_list("nb-1", "audio") == [
+            {"id": "artifact-1", "kind": "ArtifactType.AUDIO"}
+        ]
+        assert (
+            await backend.artifact_download(
+                "nb-1",
+                "quiz",
+                "quiz.json",
+                artifact_id="quiz-1",
+                output_format="json",
+            )
+            == "quiz.json"
+        )
+        assert (await backend.revise_slide("nb-1", "slides-1", 0, "Revise"))["task_id"] == (
+            "revision-1"
+        )
+        assert await backend.get_language() == "en"
+        assert await backend.set_language("tr") == "tr"
+    finally:
+        await backend.close()
+
+    assert fake.research.calls[0] == (
+        "start",
+        ("nb-1", "topic"),
+        {"source": "web", "mode": "deep"},
+    )
+    assert fake.artifacts.calls[0][0] == "generate_audio"
+    assert [call[0] for call in fake.artifacts.calls].count(
+        "generate_video"
+    ) == EXPECTED_VIDEO_GENERATE_CALLS
+    assert "generate_cinematic_video" not in [call[0] for call in fake.artifacts.calls]
+    mind_map_call = next(call for call in fake.artifacts.calls if call[0] == "generate_mind_map")
+    assert mind_map_call[2] == {"source_ids": None}
+    infographic_call = next(
+        call for call in fake.artifacts.calls if call[0] == "generate_infographic"
+    )
+    assert "style" not in infographic_call[2]
+    assert fake.settings.calls == [("get_output_language", ()), ("set_output_language", ("tr",))]
+
+
+async def test_backend_normalizes_and_validates_artifact_download_formats() -> None:
+    fake = FakeNotebookLMClient()
+
+    async def factory(_settings: Settings) -> FakeNotebookLMClient:
+        return fake
+
+    backend = NotebookLMBackend(
+        Settings(),
+        client_factory=factory,
+        retry_wait_strategy=wait_none(),
+        retry_sleep=_no_sleep,
+    )
+
+    try:
+        assert (
+            await backend.artifact_download(
+                "nb-1",
+                "quiz",
+                "quiz.md",
+                artifact_id="quiz-1",
+                output_format="md",
+            )
+            == "quiz.md"
+        )
+        assert fake.artifacts.calls[-1] == (
+            "download_quiz",
+            ("nb-1", "quiz.md"),
+            {"artifact_id": "quiz-1", "output_format": "markdown"},
+        )
+
+        with raises(BackendValidationError) as exc_info:
+            await backend.artifact_download("nb-1", "audio", "audio.md", output_format="md")
+        assert exc_info.value.error_code == VALIDATION_ERROR_CODE
+        assert exc_info.value.data == {"artifact_type": "audio", "output_format": "md"}
+
+        with raises(BackendValidationError) as slide_exc:
+            await backend.artifact_download(
+                "nb-1", "slide_deck", "slides.html", output_format="html"
+            )
+        assert slide_exc.value.data == {"artifact_type": "slide_deck", "output_format": "html"}
     finally:
         await backend.close()
 

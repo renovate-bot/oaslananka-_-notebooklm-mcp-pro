@@ -7,13 +7,18 @@ from typing import TYPE_CHECKING, Any, cast
 from fastmcp import FastMCP
 
 from nlm_mcp import __version__
+from nlm_mcp.backend.tasks import TaskStore
 from nlm_mcp.config import Settings
-from nlm_mcp.resources import register_core_resources
+from nlm_mcp.prompts import register_prompts
+from nlm_mcp.resources import register_artifact_resources, register_core_resources
 from nlm_mcp.tools import (
     register_admin_tools,
+    register_artifact_tools,
     register_chat_tools,
     register_compat_tools,
+    register_language_tools,
     register_notebook_tools,
+    register_research_tools,
     register_source_tools,
 )
 
@@ -43,10 +48,14 @@ def create_server(
     settings: Settings | None = None,
     *,
     backend: NotebookLMBackend | None = None,
+    task_store: TaskStore | None = None,
 ) -> FastMCP:
     """Create a configured FastMCP server with core tools registered."""
     resolved = settings or Settings()
     resolved_backend = backend or cast("NotebookLMBackend", _LazyNotebookLMBackend(resolved))
+    resolved_task_store = (
+        task_store if task_store is not None else TaskStore.from_settings(resolved)
+    )
     server = FastMCP(
         name="notebooklm_mcp",
         instructions=(
@@ -60,6 +69,11 @@ def create_server(
     register_notebook_tools(server, resolved_backend)
     register_source_tools(server, resolved_backend)
     register_chat_tools(server, resolved_backend)
+    register_research_tools(server, resolved_backend)
+    register_artifact_tools(server, resolved_backend, resolved, task_store=resolved_task_store)
+    register_language_tools(server, resolved_backend)
     register_compat_tools(server, resolved_backend)
     register_core_resources(server, resolved_backend)
+    register_artifact_resources(server, resolved_backend, resolved_task_store)
+    register_prompts(server)
     return server

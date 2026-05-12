@@ -20,7 +20,7 @@ make run-stdio
 
 ## Status
 
-The core server skeleton now provides a FastMCP server factory, validated settings, structured logging, stdio transport wiring, and `admin.health` / `admin.version` tools. The backend layer wraps `notebooklm-py` with auth source resolution, retry policy, and safe MCP-oriented error mapping. NotebookLM workflow tools, remote authentication, UI resources, deployment templates, and full documentation are added in the subsequent implementation milestones.
+The server now provides the FastMCP factory, validated settings, structured logging, stdio transport wiring, admin tools, a `notebooklm-py` backend wrapper, and the core notebook, source, chat, `search`, and `fetch` tool families. Artifact generation, remote authentication, UI resources, deployment templates, and full documentation are added in the subsequent implementation milestones.
 
 ## License
 

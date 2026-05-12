@@ -67,6 +67,10 @@ class FakeSourcesAPI:
         self.calls.append(("add_url", (notebook_id, url, wait)))
         return {"id": "src-2", "title": url}
 
+    async def add_youtube(self, notebook_id: str, url: str, wait: bool = False) -> dict[str, str]:
+        self.calls.append(("add_youtube", (notebook_id, url, wait)))
+        return {"id": "src-youtube", "title": url}
+
     async def get_fulltext(self, notebook_id: str, source_id: str) -> dict[str, str]:
         self.calls.append(("get_fulltext", (notebook_id, source_id)))
         return {"source_id": source_id, "text": "full text"}
@@ -160,6 +164,10 @@ async def test_backend_delegates_source_and_chat_operations() -> None:
             "id": "src-2",
             "title": "https://example.com",
         }
+        assert await backend.add_youtube_source("nb-1", "https://youtube.com/watch?v=abc") == {
+            "id": "src-youtube",
+            "title": "https://youtube.com/watch?v=abc",
+        }
         assert await backend.get_source_fulltext("nb-1", "src-1") == {
             "source_id": "src-1",
             "text": "full text",
@@ -172,6 +180,7 @@ async def test_backend_delegates_source_and_chat_operations() -> None:
         assert fake.sources.calls == [
             ("list", ("nb-1",)),
             ("add_url", ("nb-1", "https://example.com", False)),
+            ("add_youtube", ("nb-1", "https://youtube.com/watch?v=abc", False)),
             ("get_fulltext", ("nb-1", "src-1")),
         ]
         assert fake.chat.calls == [("ask", ("nb-1", "Question?", ["src-1"], None))]

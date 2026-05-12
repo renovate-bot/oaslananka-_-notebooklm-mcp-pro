@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-05-11
+
+### Added
+
+- Notebook, source, and chat tool families with typed validation, annotations, and safe error handling.
+- ChatGPT-compatible `search` and `fetch` tools for notebook/source record discovery.
+- Core NotebookLM resources for notebook indexes, source metadata, and source full text.
+- Offline fake-backend unit coverage and stdio smoke validation for the expanded tool catalog.
+
 ## [0.2.0] - 2026-05-11
 
 ### Added

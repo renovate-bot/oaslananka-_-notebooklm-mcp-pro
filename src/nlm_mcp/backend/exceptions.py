@@ -4,21 +4,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from notebooklm import (
-    ArtifactNotFoundError,
-    AuthError,
-    ClientError,
-    ConfigurationError,
-    NetworkError,
-    NotebookLMError,
-    NotebookNotFoundError,
-    RateLimitError,
-    RPCTimeoutError,
-    ServerError,
-    SourceNotFoundError,
-    ValidationError,
-)
-
 
 class BackendError(Exception):
     """Base error returned by the NotebookLM backend layer."""
@@ -80,6 +65,21 @@ def map_backend_exception(exc: Exception) -> BackendError:
     """Map notebooklm-py and transport exceptions to sanitized backend errors."""
     if isinstance(exc, BackendError):
         return exc
+
+    from notebooklm import (  # noqa: PLC0415
+        ArtifactNotFoundError,
+        AuthError,
+        ClientError,
+        ConfigurationError,
+        NetworkError,
+        NotebookLMError,
+        NotebookNotFoundError,
+        RateLimitError,
+        RPCTimeoutError,
+        ServerError,
+        SourceNotFoundError,
+        ValidationError,
+    )
 
     mapped: BackendError
     if isinstance(exc, RateLimitError):

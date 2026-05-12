@@ -11,8 +11,14 @@ from pathlib import Path
 from typing import Any, Literal, TypeVar
 
 from notebooklm import NotebookLMClient
+from notebooklm.rpc.types import SharePermission
 
-from nlm_mcp.backend.exceptions import BackendAuthError, BackendError, map_backend_exception
+from nlm_mcp.backend.exceptions import (
+    BackendAuthError,
+    BackendError,
+    BackendValidationError,
+    map_backend_exception,
+)
 from nlm_mcp.backend.retry import SleepCallback, is_retryable_exception, run_with_retry
 from nlm_mcp.config import Settings
 
@@ -214,6 +220,53 @@ class NotebookLMBackend:
             retry=False,
         )
 
+    async def share_public(self, notebook_id: str, public: bool) -> Any:
+        """Toggle public sharing for a NotebookLM notebook."""
+        return await self._call(
+            "notebook.share_public",
+            lambda client: client.sharing.set_public(notebook_id, public),
+            retry=False,
+        )
+
+    async def share_invite(
+        self,
+        notebook_id: str,
+        email: str,
+        *,
+        role: Literal["viewer", "editor"] = "viewer",
+        notify: bool = True,
+        welcome_message: str = "",
+    ) -> Any:
+        """Invite a user to a NotebookLM notebook."""
+        if role not in {"viewer", "editor"}:
+            raise BackendValidationError(
+                "Notebook sharing role must be viewer or editor.",
+                error_code=-32602,
+                data={"role": role},
+            )
+        permission_by_role = {
+            "viewer": SharePermission.VIEWER,
+            "editor": SharePermission.EDITOR,
+        }
+        return await self._call(
+            "notebook.share_invite",
+            lambda client: client.sharing.add_user(
+                notebook_id,
+                email,
+                permission=permission_by_role[role],
+                notify=notify,
+                welcome_message=welcome_message,
+            ),
+            retry=False,
+        )
+
+    async def share_status(self, notebook_id: str) -> Any:
+        """Get NotebookLM notebook sharing status."""
+        return await self._call(
+            "notebook.share_status",
+            lambda client: client.sharing.get_status(notebook_id),
+        )
+
     async def list_sources(self, notebook_id: str) -> Any:
         """List NotebookLM sources in a notebook."""
         return await self._call(
@@ -242,6 +295,17 @@ class NotebookLMBackend:
             lambda client: client.sources.add_url(notebook_id, url, wait=wait),
             retry=False,
         )
+
+    async def add_youtube_source(self, notebook_id: str, url: str, *, wait: bool = False) -> Any:
+        """Add a YouTube URL source to a NotebookLM notebook."""
+
+        async def operation(client: Any) -> Any:
+            add_youtube = getattr(client.sources, "add_youtube", None)
+            if add_youtube is not None:
+                return await add_youtube(notebook_id, url, wait=wait)
+            return await client.sources.add_url(notebook_id, url, wait=wait)
+
+        return await self._call("source.add_youtube", operation, retry=False)
 
     async def add_text_source(
         self,
@@ -332,5 +396,37 @@ class NotebookLMBackend:
                 source_ids=source_ids,
                 conversation_id=conversation_id,
             ),
+            retry=False,
+        )
+
+    async def get_conversation_id(self, notebook_id: str) -> Any:
+        """Return NotebookLM's current conversation id for a notebook."""
+        return await self._call(
+            "chat.conversation_start",
+            lambda client: client.chat.get_conversation_id(notebook_id),
+        )
+
+    async def get_chat_history(
+        self,
+        notebook_id: str,
+        *,
+        limit: int = 100,
+        conversation_id: str | None = None,
+    ) -> Any:
+        """Get chat history for a NotebookLM notebook."""
+        return await self._call(
+            "chat.history",
+            lambda client: client.chat.get_history(
+                notebook_id,
+                limit=limit,
+                conversation_id=conversation_id,
+            ),
+        )
+
+    async def save_note(self, notebook_id: str, title: str, content: str) -> Any:
+        """Save content as a NotebookLM note."""
+        return await self._call(
+            "chat.save_to_notes",
+            lambda client: client.notes.create(notebook_id, title=title, content=content),
             retry=False,
         )

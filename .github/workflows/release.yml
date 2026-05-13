@@ -29,7 +29,6 @@ jobs:
   release:
     needs: validate-tag
     runs-on: [self-hosted, ubuntu-latest]
-    environment: pypi
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v3
@@ -39,28 +38,25 @@ jobs:
       - run: uv sync --extra dev
       - run: uv run python -m build
       - run: uv run cyclonedx-py environment --output-format json -o sbom.json
-      - uses: pypa/gh-action-pypi-publish@release/v1
-      - uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: docker/metadata-action@v5
-        id: meta
-        with:
-          images: ghcr.io/oaslananka/notebooklm-mcp-pro
-          tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
-            type=raw,value=latest
-      - uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: deploy/Dockerfile
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+      - name: Build and push Docker image
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          MINOR="${VERSION%.*}"
+          MAJOR="${VERSION%%.*}"
+          IMAGE="ghcr.io/oaslananka/notebooklm-mcp-pro"
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          docker build -f deploy/Dockerfile \
+            -t "${IMAGE}:${VERSION}" \
+            -t "${IMAGE}:${MINOR}" \
+            -t "${IMAGE}:${MAJOR}" \
+            -t "${IMAGE}:latest" \
+            .
+          docker push "${IMAGE}:${VERSION}"
+          docker push "${IMAGE}:${MINOR}"
+          docker push "${IMAGE}:${MAJOR}"
+          docker push "${IMAGE}:latest"
+      - name: Publish to PyPI
+        run: uv publish --trusted-publishing always dist/*
       - uses: softprops/action-gh-release@v2
         with:
           files: |

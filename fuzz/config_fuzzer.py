@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import sys
 from contextlib import suppress
 from enum import Enum
@@ -9,10 +10,15 @@ from typing import TypeVar
 
 import atheris
 
-with atheris.instrument_imports():
+if os.getenv("NLM_MCP_FUZZ_SMOKE") == "1":
     from pydantic import ValidationError
 
     from nlm_mcp.config import AuthMode, LogFormat, Settings, TransportMode
+else:
+    with atheris.instrument_imports():
+        from pydantic import ValidationError
+
+        from nlm_mcp.config import AuthMode, LogFormat, Settings, TransportMode
 
 EnumT = TypeVar("EnumT", bound=Enum)
 

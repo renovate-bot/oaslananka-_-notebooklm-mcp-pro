@@ -33,6 +33,7 @@ jobs:
       - name: Run deterministic Python fuzz smoke
         shell: bash
         env:
+          NLM_MCP_FUZZ_SMOKE: "1"
           UV_PROJECT_ENVIRONMENT: /tmp/nlm-fuzz-smoke-venv
         run: |
           uv sync --frozen --no-dev

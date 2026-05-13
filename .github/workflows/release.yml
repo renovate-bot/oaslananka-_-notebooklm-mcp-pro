@@ -5,10 +5,12 @@ on:
     tags:
       - "v[0-9]+.[0-9]+.[0-9]+"
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
-  contents: write
-  packages: write
-  id-token: write
+  contents: read
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
@@ -33,6 +35,10 @@ jobs:
     needs: validate-tag
     runs-on: [self-hosted, Linux, X64]
     environment: pypi
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
@@ -42,6 +48,13 @@ jobs:
       - run: uv sync --extra dev
       - run: uv run python -m build
       - run: uv run cyclonedx-py environment --output-format json -o sbom.json
+      - name: Sign release artifacts
+        uses: sigstore/gh-action-sigstore-python@04cffa1d795717b140764e8b640de88853c92acc # v3.3.0
+        with:
+          inputs: |
+            dist/*
+            sbom.json
+          release-signing-artifacts: false
       - name: Set up Docker Buildx
         run: |
           BUILDER="nlm-builder-${GITHUB_RUN_ID}"
@@ -62,12 +75,13 @@ jobs:
             -t "${IMAGE}:latest" \
             .
       - name: Publish to PyPI
-        run: uv publish --trusted-publishing always dist/*
-      - uses: softprops/action-gh-release@v3
+        run: uv publish --trusted-publishing always dist/*.whl dist/*.tar.gz
+      - uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3
         with:
           files: |
             dist/*
             sbom.json
+            sbom.json.sigstore.json
           generate_release_notes: true
       - name: Remove Docker Buildx builder
         if: always()

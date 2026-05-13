@@ -1,0 +1,57 @@
+name: Sign Release Artifacts
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to sign
+        required: true
+        default: v1.0.0
+
+concurrency:
+  group: ${{ github.workflow }}-${{ inputs.tag }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  sign-release:
+    name: sign-release
+    runs-on: [self-hosted, Linux, X64]
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - name: Download release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          rm -rf release-assets
+          mkdir release-assets
+          gh release download "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --dir release-assets \
+            --pattern "*"
+          find release-assets -type f \( -name "*.sigstore.json" -o -name "*.intoto.jsonl" \) -delete
+          test -n "$(find release-assets -maxdepth 1 -type f -print -quit)"
+      - name: Sign release assets
+        uses: sigstore/gh-action-sigstore-python@04cffa1d795717b140764e8b640de88853c92acc # v3.3.0
+        with:
+          inputs: release-assets/*
+          release-signing-artifacts: false
+      - name: Upload signatures
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          gh release upload "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --clobber \
+            release-assets/*.sigstore.json

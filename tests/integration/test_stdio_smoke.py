@@ -1,4 +1,5 @@
 import asyncio
+import os
 import sys
 from pathlib import Path
 
@@ -8,10 +9,18 @@ from mcp.client.stdio import StdioServerParameters, stdio_client
 
 async def test_stdio_server_initializes_and_lists_core_tools() -> None:
     repo_root = Path(__file__).resolve().parents[2]
+    env = os.environ.copy()
+    python_lib_path = str(Path(sys.base_prefix) / "lib")
+    existing_library_path = env.get("LD_LIBRARY_PATH")
+    if existing_library_path:
+        env["LD_LIBRARY_PATH"] = f"{python_lib_path}:{existing_library_path}"
+    else:
+        env["LD_LIBRARY_PATH"] = python_lib_path
     server = StdioServerParameters(
         command=sys.executable,
         args=["-m", "nlm_mcp", "stdio"],
         cwd=repo_root,
+        env=env,
     )
 
     async with (

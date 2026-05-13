@@ -76,6 +76,7 @@ nav:
       - VS Code Continue: integrations/vscode.md
       - Cursor: integrations/cursor.md
   - Configuration: configuration.md
+  - Architecture: ARCHITECTURE.md
   - Tools Reference:
       - Notebooks: tools/notebooks.md
       - Sources: tools/sources.md
@@ -94,6 +95,8 @@ nav:
       - Kubernetes: deployment/kubernetes.md
       - Self-hosted: deployment/self-hosted.md
   - Security: security.md
+  - Quality Score: QUALITY_SCORE.md
+  - Technical Debt: TECH_DEBT.md
   - Roadmap: ROADMAP.md
   - Contributing: contributing.md
   - Changelog: changelog.md

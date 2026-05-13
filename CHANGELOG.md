@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- OpenSSF Scorecard workflow with SARIF upload and public result publishing.
+- Manual release artifact signing workflow for existing GitHub releases.
+- ClusterFuzzLite batch fuzzing workflow and Python Atheris fuzz target for settings validation.
+- Agent operating map, architecture guide, quality score page, and technical debt register.
+
+### Changed
+
+- Hardened workflow token permissions to top-level read-only with job-level write scopes.
+- Pinned Docker base images by digest and verified the Gitleaks scanner binary by checksum.
+- Pinned release and SARIF upload actions by full commit SHA.
+- Release workflow now signs wheel, sdist, and SBOM assets with Sigstore bundles.
+- CI, security, docs, CodeQL, release, and manual workflows now define concurrency groups to cancel stale runs.
+- CI now runs on pull requests and main-branch pushes, avoiding duplicate feature-branch push runs.
+
 ## [1.0.0] - 2026-05-13
 
 ### Added

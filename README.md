@@ -9,6 +9,7 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://pypi.org/project/notebooklm-mcp-pro/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Coverage](https://img.shields.io/codecov/c/github/oaslananka/notebooklm-mcp-pro)](https://codecov.io/gh/oaslananka/notebooklm-mcp-pro)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/oaslananka/notebooklm-mcp-pro/badge)](https://scorecard.dev/viewer/?uri=github.com/oaslananka/notebooklm-mcp-pro)
 [![Code style: ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
 Connect any MCP-capable client to Google NotebookLM.
@@ -65,7 +66,11 @@ Works with **Claude Desktop**, **Claude.ai**, **ChatGPT**, **Cursor**, **VS Code
 - Railway template.
 - Fly.io template.
 - Kubernetes manifests.
-- Release workflow with wheel, sdist, SBOM, PyPI, and GHCR publishing.
+- Release workflow with wheel, sdist, SBOM, Sigstore bundles, PyPI, and GHCR publishing.
+- OpenSSF Scorecard workflow with SARIF upload.
+- ClusterFuzzLite scheduled fuzzing for configuration-boundary validation.
+- Digest-pinned Docker base images.
+- SHA-pinned GitHub Actions.
 
 ---
 
@@ -548,6 +553,11 @@ flowchart TB
 - Artifact downloads are constrained to the artifacts directory.
 - Destructive tools require explicit confirmation.
 - CI runs lint, typecheck, tests, dependency audit, static analysis, and secret scanning.
+- OpenSSF Scorecard runs on `main` and publishes SARIF.
+- ClusterFuzzLite runs scheduled Atheris fuzzing for settings validation.
+- GitHub Actions use top-level read-only permissions and job-level write scopes.
+- Release assets are signed with Sigstore bundles.
+- Docker build images are pinned by digest.
 
 See [Security](SECURITY.md).
 
@@ -592,7 +602,7 @@ git tag v1.0.0
 git push origin v1.0.0
 ```
 
-The release workflow validates the tag, builds distributions, generates an SBOM, publishes to PyPI, pushes GHCR images, and creates a GitHub release.
+The release workflow validates the tag, builds distributions, generates an SBOM, signs release assets with Sigstore, publishes to PyPI, pushes GHCR images, and creates a GitHub release.
 
 ---
 

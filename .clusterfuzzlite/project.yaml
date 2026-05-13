@@ -1,0 +1,4 @@
+language: python
+primary_contact: "oaslananka@users.noreply.github.com"
+auto_ccs:
+  - "oaslananka@users.noreply.github.com"

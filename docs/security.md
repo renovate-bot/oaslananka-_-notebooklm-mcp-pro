@@ -27,6 +27,11 @@ OAuth authorization URLs are required to use HTTPS. The implementation never she
 - `bandit` runs static analysis.
 - `gitleaks` scans commits and the worktree.
 - Release builds produce a CycloneDX SBOM.
+- OpenSSF Scorecard publishes SARIF from the `main` branch.
+- ClusterFuzzLite runs a scheduled Atheris fuzz target for configuration validation.
+- Release assets are signed with Sigstore bundle files.
+- Docker base images are pinned by digest.
+- Workflows keep write permissions at the job level.
 
 ## Reporting vulnerabilities
 

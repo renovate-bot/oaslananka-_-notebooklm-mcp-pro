@@ -1,10 +1,7 @@
 # syntax=docker/dockerfile:1.9
-ARG PYTHON_VERSION=3.12
-ARG UV_VERSION=0.9.30
+FROM ghcr.io/astral-sh/uv@sha256:538e0b39736e7feae937a65983e49d2ab75e1559d35041f9878b7b7e51de91e4 AS uv
 
-FROM ghcr.io/astral-sh/uv:${UV_VERSION} AS uv
-
-FROM python:${PYTHON_VERSION}-slim AS builder
+FROM python@sha256:401f6e1a67dad31a1bd78e9ad22d0ee0a3b52154e6bd30e90be696bb6a3d7461 AS builder
 
 ENV UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
@@ -20,7 +17,7 @@ COPY src ./src
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --no-dev --no-editable
 
-FROM python:${PYTHON_VERSION}-slim AS runtime
+FROM python@sha256:401f6e1a67dad31a1bd78e9ad22d0ee0a3b52154e6bd30e90be696bb6a3d7461 AS runtime
 
 LABEL org.opencontainers.image.title="notebooklm-mcp-pro" \
       org.opencontainers.image.description="Production-grade MCP server for Google NotebookLM" \

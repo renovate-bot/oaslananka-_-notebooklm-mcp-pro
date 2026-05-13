@@ -42,6 +42,11 @@ We aim to respond within 72 hours and release a patch within 14 days for critica
 - `bandit` static analysis runs in CI.
 - Dependabot is configured for Python and GitHub Actions.
 - Release workflows generate CycloneDX SBOM artifacts.
+- OpenSSF Scorecard runs on `main` and on a weekly schedule.
+- ClusterFuzzLite runs scheduled Python fuzzing for configuration-boundary validation.
+- Release assets are signed with Sigstore bundles.
+- GitHub Actions use top-level read-only token permissions with job-level write scopes.
+- Docker base images are pinned by digest.
 
 ### Docker
 

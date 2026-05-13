@@ -15,7 +15,7 @@ env:
 jobs:
   dependency-audit:
     name: pip-audit
-    runs-on: [self-hosted, ubuntu-latest]
+    runs-on: [self-hosted, Linux, X64]
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
@@ -28,7 +28,7 @@ jobs:
 
   bandit:
     name: bandit
-    runs-on: [self-hosted, ubuntu-latest]
+    runs-on: [self-hosted, Linux, X64]
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
@@ -45,7 +45,7 @@ jobs:
 
   gitleaks:
     name: gitleaks
-    runs-on: [self-hosted, ubuntu-latest]
+    runs-on: [self-hosted, Linux, X64]
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:

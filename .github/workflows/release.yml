@@ -45,7 +45,7 @@ jobs:
           MAJOR="${VERSION%%.*}"
           IMAGE="ghcr.io/oaslananka/notebooklm-mcp-pro"
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
-          docker build -f deploy/Dockerfile \
+          DOCKER_BUILDKIT=1 docker build -f deploy/Dockerfile \
             -t "${IMAGE}:${VERSION}" \
             -t "${IMAGE}:${MINOR}" \
             -t "${IMAGE}:${MAJOR}" \

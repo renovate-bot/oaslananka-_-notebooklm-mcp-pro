@@ -1,0 +1,25 @@
+ci:
+  - changed-files:
+      - any-glob-to-any-file:
+          - ".github/workflows/**"
+          - ".github/labeler.yml"
+
+docs:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "docs/**"
+          - "mkdocs.yml"
+          - "README.md"
+
+python:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/**/*.py"
+          - "tests/**/*.py"
+          - "pyproject.toml"
+
+deployment:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "deploy/**"
+          - "Dockerfile"

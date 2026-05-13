@@ -3,23 +3,71 @@ description: Report a reproducible defect
 title: "fix: "
 labels: ["bug"]
 body:
-  - type: textarea
-    id: summary
+  - type: input
+    id: version
     attributes:
-      label: Summary
-      description: What happened?
+      label: Version
+      description: Output of nlm-mcp --version
+      placeholder: "1.0.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: transport
+    attributes:
+      label: Transport
+      options:
+        - stdio
+        - http
+    validations:
+      required: true
+  - type: input
+    id: python_version
+    attributes:
+      label: Python version
+      placeholder: "3.12.3"
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: "macOS 15, Ubuntu 24.04, Windows 11"
+    validations:
+      required: true
+  - type: dropdown
+    id: auth_mode
+    attributes:
+      label: Auth mode
+      options:
+        - none
+        - token
+        - github-oauth
     validations:
       required: true
   - type: textarea
-    id: reproduce
+    id: steps_to_reproduce
     attributes:
-      label: Reproduction
-      description: Steps to reproduce the issue.
+      label: Steps to reproduce
+      description: Include commands, config snippets, and exact inputs.
     validations:
       required: true
   - type: textarea
-    id: expected
+    id: expected_behavior
     attributes:
       label: Expected behavior
     validations:
       required: true
+  - type: textarea
+    id: actual_behavior
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Paste structlog output with credentials redacted.
+      render: shell
+    validations:
+      required: false

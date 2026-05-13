@@ -1,12 +1,19 @@
 title = "notebooklm-mcp-pro gitleaks config"
 
-[allowlist]
+[[rules]]
+id = "notebooklm-auth"
+description = "NotebookLM auth JSON"
+regex = '''notebooklm_auth.*["'].*cookies'''
+tags = ["notebooklm", "credentials"]
+
+[[rules.allowlists]]
+id = "notebooklm-auth-examples"
+description = "Documented placeholder examples"
 paths = [
-  '''(^|/)\.audit-requirements\.txt$''',
-  '''(^|/)gitleaks-report\.json$''',
-  '''(^|/)\.venv/''',
-  '''(^|/)build/''',
-  '''(^|/)dist/''',
-  '''(^|/)htmlcov/''',
-  '''(^|/)site/''',
+  '''\.env\.example$''',
+  '''deploy/k8s/secret\.yaml\.example$''',
+  '''docs/.*''',
+  '''README\.md$''',
+  '''tests/.*''',
+  '''\.gitleaks\.toml$''',
 ]

@@ -7,44 +7,72 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-05-13
+
+### Added
+
+- Full HTTP bearer token authentication with header and query parameter support.
+- GitHub OAuth authentication with local SQLite session storage.
+- OpenAPI 3.1 schema endpoint at `GET /openapi.json`.
+- ChatGPT plugin manifest at `GET /.well-known/ai-plugin.json`.
+- OAuth protected resource and authorization server metadata endpoints.
+- OpenAPI tool action endpoint at `POST /tools/{tool_name}`.
+- Complete MkDocs Material documentation site.
+- Claude Desktop, Claude.ai Web, ChatGPT, Cursor, and VS Code integration guides.
+- Docker Compose, Railway, Fly.io, Kubernetes, and self-hosted deployment templates.
+- Multi-stage Dockerfile with uv-based build and non-root runtime user.
+- SBOM generation in the release workflow.
+- PyPI publish and GHCR Docker push in the release workflow.
+- Codecov coverage reporting in CI.
+- `notebooklm-mcp-pro[all]` extra for full optional install.
+- Dedicated tests for HTTP auth, OAuth, OpenAPI, compatibility tools, and language tools.
+
+### Changed
+
+- Bumped package version to `1.0.0`.
+- Marked the package as production/stable.
+- Updated package metadata and documentation URLs to `oaslananka/notebooklm-mcp-pro`.
+- Raised coverage enforcement to 92%.
+- `serve` no longer rejects `auth_mode=token` or `auth_mode=github-oauth`.
+
+### Fixed
+
+- Auth middleware bypasses health, OpenAPI, plugin manifest, OAuth metadata, and OAuth callback endpoints.
+- Artifact downloads reject absolute paths and parent traversal.
+- Research wait handles failed terminal states and task ID filtering.
+
 ## [0.4.0] - 2026-05-12
 
 ### Added
 
-- Research, artifact generation, artifact lifecycle, and language tool families.
-- Persistent SQLite task tracking for artifact task ids and artifact metadata resources.
-- Mind-map and artifact resources for generated NotebookLM content.
-- Four typed workflow prompts for research summaries, study packs, meeting podcasts, and paper deep dives.
-- Offline coverage for artifact generation, task polling, downloads, research import flow, language confirmation, prompts, and resources.
+- Artifact lifecycle tools: `artifact.list`, `artifact.status`, `artifact.wait`, `artifact.download`, and `artifact.revise_slide`.
+- Language tools: `language.list`, `language.get`, and `language.set`.
+- Research tools: `research.web_start`, `research.drive_start`, `research.status`, and `research.wait`.
+- SQLite-backed task tracking for generated artifacts.
+- MCP resources for artifact tasks and mind maps.
+- Prompt templates for study packs, research summaries, meeting podcasts, and paper deep dives.
 
-## [0.3.0] - 2026-05-11
-
-### Added
-
-- Notebook, source, and chat tool families with typed validation, annotations, and safe error handling.
-- ChatGPT-compatible `search` and `fetch` tools for notebook/source record discovery.
-- Core NotebookLM resources for notebook indexes, source metadata, and source full text.
-- Offline fake-backend unit coverage and stdio smoke validation for the expanded tool catalog.
-
-## [0.2.0] - 2026-05-11
+## [0.3.0] - 2026-05-12
 
 ### Added
 
-- Async NotebookLM backend wrapper around `notebooklm-py`.
-- Safe backend exception mapping for MCP-compatible error responses.
-- Tenacity retry policy for rate-limit, timeout, server, and network failures.
-- Offline unit coverage for auth source resolution, retry behavior, and wrapper delegation.
+- Notebook, source, chat, resource, and compatibility tools.
+- ChatGPT-compatible `search` and `fetch`.
 
-## [0.1.0] - 2026-05-11
+## [0.2.0] - 2026-05-12
 
 ### Added
 
-- FastMCP server factory with stdio transport wiring.
-- Settings model, structured logging setup, and admin health/version tools.
-- Unit and integration smoke coverage for the core server skeleton.
+- NotebookLM backend wrapper, retry policies, and exception mapping.
 
-## [0.0.1] - 2026-05-11
+## [0.1.0] - 2026-05-12
 
 ### Added
 
-- Bootstrap scaffold for the NotebookLM MCP server project.
+- Core FastMCP server factory, CLI, settings, logging, and admin tools.
+
+## [0.0.1] - 2026-05-12
+
+### Added
+
+- Initial repository scaffold, CI, security workflows, and packaging metadata.

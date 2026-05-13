@@ -1,7 +1,100 @@
 site_name: notebooklm-mcp-pro
-site_url: https://oaslananka-lab.github.io/notebooklm-mcp-pro/
-repo_url: https://github.com/oaslananka-lab/notebooklm-mcp-pro
+site_description: Production-grade MCP server for Google NotebookLM
+site_url: https://oaslananka.github.io/notebooklm-mcp-pro/
+site_author: oaslananka
+repo_url: https://github.com/oaslananka/notebooklm-mcp-pro
+repo_name: oaslananka/notebooklm-mcp-pro
+edit_uri: edit/main/docs/
+
 theme:
   name: material
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: blue
+      toggle:
+        icon: material/brightness-7
+        name: Dark mode
+    - scheme: slate
+      primary: indigo
+      accent: blue
+      toggle:
+        icon: material/brightness-4
+        name: Light mode
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - toc.integrate
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+  icon:
+    repo: fontawesome/brands/github
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
+          options:
+            show_source: true
+            show_root_heading: true
+            show_signature_annotations: true
+            heading_level: 2
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.tabbed:
+      alternate_style: true
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+
 nav:
   - Home: index.md
+  - Getting Started:
+      - Installation: getting-started/installation.md
+      - Authentication: getting-started/authentication.md
+      - Quickstart: getting-started/quickstart.md
+  - Integrations:
+      - Claude Desktop: integrations/claude-desktop.md
+      - Claude.ai Web: integrations/claude-web.md
+      - ChatGPT Custom Actions: integrations/chatgpt.md
+      - VS Code Continue: integrations/vscode.md
+      - Cursor: integrations/cursor.md
+  - Configuration: configuration.md
+  - Tools Reference:
+      - Notebooks: tools/notebooks.md
+      - Sources: tools/sources.md
+      - Chat: tools/chat.md
+      - Research: tools/research.md
+      - Artifact Generation: tools/artifacts.md
+      - Language: tools/language.md
+      - Admin: tools/admin.md
+      - Compatibility: tools/compat.md
+      - Catalog: tools/catalog.md
+  - Deployment:
+      - Overview: deployment/index.md
+      - Docker: deployment/docker.md
+      - Railway: deployment/railway.md
+      - Fly.io: deployment/fly.md
+      - Kubernetes: deployment/kubernetes.md
+      - Self-hosted: deployment/self-hosted.md
+  - Security: security.md
+  - Roadmap: ROADMAP.md
+  - Contributing: contributing.md
+  - Changelog: changelog.md
+  - API Reference: api/index.md

@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Awaitable
+from time import monotonic
 from typing import TYPE_CHECKING, Any
 
 from fastmcp import FastMCP
 
+from nlm_mcp.backend.exceptions import BackendTimeoutError, BackendValidationError
 from nlm_mcp.tools.common import require_confirmation, run_tool, to_plain, tool_annotations
 from nlm_mcp.tools.models import (
     ConfirmSourceInput,
@@ -16,6 +19,7 @@ from nlm_mcp.tools.models import (
     SourceAddTextInput,
     SourceAddUrlInput,
     SourceIdInput,
+    SourceWaitInput,
 )
 
 if TYPE_CHECKING:
@@ -216,6 +220,30 @@ def register_source_tools(server: FastMCP, backend: NotebookLMBackend) -> None:
         )
 
     @server.tool(
+        name="source.wait",
+        title="Wait For Source",
+        annotations=tool_annotations(read_only=True, idempotent=False),
+    )
+    async def source_wait(
+        notebook_id: str,
+        source_id: str,
+        poll_interval_sec: int = 5,
+        timeout_sec: int = 300,
+    ) -> dict[str, Any]:
+        """Wait until one NotebookLM source leaves the indexing state."""
+        payload = SourceWaitInput(
+            notebook_id=notebook_id,
+            source_id=source_id,
+            poll_interval_sec=poll_interval_sec,
+            timeout_sec=timeout_sec,
+        )
+        return await run_tool(
+            "source.wait",
+            payload,
+            lambda: _wait_for_source(backend, payload),
+        )
+
+    @server.tool(
         name="source.remove",
         title="Remove Source",
         annotations=tool_annotations(destructive=True, idempotent=False),
@@ -247,3 +275,30 @@ async def _list_sources(backend: NotebookLMBackend, notebook_id: str) -> dict[st
 
 async def _generic_result(awaitable: Awaitable[Any]) -> dict[str, Any]:
     return {"result": to_plain(await awaitable)}
+
+
+async def _wait_for_source(
+    backend: NotebookLMBackend,
+    payload: SourceWaitInput,
+) -> dict[str, Any]:
+    deadline = monotonic() + payload.timeout_sec
+    last_source: dict[str, Any] = {}
+    while monotonic() <= deadline:
+        source = to_plain(await backend.get_source(payload.notebook_id, payload.source_id))
+        if isinstance(source, dict):
+            last_source = source
+            state = str(source.get("status", "")).casefold()
+            if state in {"failed", "error"}:
+                raise BackendValidationError(
+                    "NotebookLM source indexing failed.",
+                    error_code=-32602,
+                    data={"source": source},
+                )
+            if state not in {"pending", "processing", "indexing", "refreshing"}:
+                return {"source": source}
+        await asyncio.sleep(payload.poll_interval_sec)
+    raise BackendTimeoutError(
+        "NotebookLM source indexing timed out.",
+        error_code=-32003,
+        data={"timeout_seconds": payload.timeout_sec, "last_source": last_source},
+    )

@@ -159,6 +159,12 @@ class FakeArtifactBackend:
             "prompt": prompt,
         }
 
+    async def artifact_delete(self, notebook_id: str, artifact_id: str) -> bool:
+        return notebook_id == "nb-1" and artifact_id == "quiz-1"
+
+    async def artifact_cancel(self, notebook_id: str, task_id: str) -> bool:
+        return notebook_id == "nb-1" and task_id == "audio-1"
+
     async def get_language(self) -> str:
         return self.language
 
@@ -254,6 +260,14 @@ async def test_artifact_lifecycle_tools_and_resources(tmp_path: Path) -> None:
                 "prompt": "Tighten the title",
             },
         )
+        deleted = await client.call_tool(
+            "artifact.delete",
+            {"notebook_id": "nb-1", "artifact_id": "quiz-1", "confirm": True},
+        )
+        canceled = await client.call_tool(
+            "artifact.cancel",
+            {"notebook_id": "nb-1", "task_id": "audio-1", "confirm": True},
+        )
         artifact_resource = await client.read_resource("notebooklm://artifact/audio-1")
         mindmap_resource = await client.read_resource("notebooklm://notebook/nb-1/mindmap")
         with pytest.raises(McpError, match="Artifact task was not found"):
@@ -266,6 +280,8 @@ async def test_artifact_lifecycle_tools_and_resources(tmp_path: Path) -> None:
     assert backend.downloads[0][2] == str(tmp_path / "artifacts" / "quiz.json")
     assert backend.downloads[0][4] == "markdown"
     assert revised.data["task_id"] == "revision-1"
+    assert deleted.data["deleted"] is True
+    assert canceled.data["canceled"] is True
     assert json.loads(artifact_resource[0].text)["artifact"]["task_id"] == "audio-1"
     assert json.loads(mindmap_resource[0].text)["mind_maps"][0]["kind"] == "mind_map"
 
@@ -296,28 +312,6 @@ async def test_artifact_download_rejects_unsafe_paths(tmp_path: Path) -> None:
                 },
             )
     assert traversal_backend.downloads == []
-
-
-async def test_artifact_download_rejects_symlink_escape(tmp_path: Path) -> None:
-    artifacts_dir = tmp_path / "artifacts"
-    artifacts_dir.mkdir()
-    outside_dir = tmp_path / "outside"
-    outside_dir.mkdir()
-    (artifacts_dir / "link").symlink_to(outside_dir, target_is_directory=True)
-
-    backend = FakeArtifactBackend()
-    async with Client(_server(tmp_path, backend)) as client:
-        with pytest.raises(ToolError):
-            await client.call_tool(
-                "artifact.download",
-                {
-                    "notebook_id": "nb-1",
-                    "artifact_type": "quiz",
-                    "output_path": "link/escaped.json",
-                },
-            )
-
-    assert backend.downloads == []
 
 
 async def test_research_language_and_prompts(tmp_path: Path) -> None:

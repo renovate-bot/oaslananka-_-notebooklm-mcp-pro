@@ -70,7 +70,12 @@ def test_cli_serve_starts_uvicorn(monkeypatch: MonkeyPatch) -> None:
     assert calls
     args, kwargs = calls[0]
     web_app = cast(Starlette, args[0])
-    assert kwargs == {"host": "127.0.0.1", "port": TEST_HTTP_PORT, "log_level": "info"}
+    assert kwargs == {
+        "host": "127.0.0.1",
+        "port": TEST_HTTP_PORT,
+        "log_level": "info",
+        "access_log": True,
+    }
     assert web_app.state.settings.http_port == TEST_HTTP_PORT
 
 
@@ -116,6 +121,9 @@ def test_http_app_mounts_streamable_http_endpoint() -> None:
 
     assert settings.http_path in route_paths
     assert "/healthz" in route_paths
+    assert "/openapi.json" in route_paths
+    assert "/.well-known/ai-plugin.json" in route_paths
+    assert "/tools/{tool_name:path}" in route_paths
 
 
 def test_cli_stdio_invokes_runner(monkeypatch: MonkeyPatch) -> None:

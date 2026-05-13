@@ -1,0 +1,33 @@
+version: "3.9"
+
+services:
+  nlm-mcp:
+    image: ghcr.io/oaslananka/notebooklm-mcp-pro:latest
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    ports:
+      - "8080:8080"
+    volumes:
+      - nlm-mcp-data:/home/appuser/.local/share/nlm-mcp
+      - ${NLM_AUTH_FILE:-~/.config/nlm-mcp}:/home/appuser/.config/nlm-mcp:ro
+    environment:
+      NLM_MCP_TRANSPORT: http
+      NLM_MCP_AUTH_MODE: ${NLM_MCP_AUTH_MODE:-none}
+      NLM_MCP_BEARER_TOKEN: ${NLM_MCP_BEARER_TOKEN:-}
+      NLM_MCP_BASE_URL: ${NLM_MCP_BASE_URL:-}
+      NLM_MCP_LOG_LEVEL: ${NLM_MCP_LOG_LEVEL:-INFO}
+      NLM_MCP_LOG_FORMAT: json
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/healthz', timeout=3)"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  nlm-mcp-data:

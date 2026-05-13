@@ -12,6 +12,7 @@ coverage.xml
 htmlcov/
 dist/
 build/
+*.sarif
 .venv/
 venv/
 env/

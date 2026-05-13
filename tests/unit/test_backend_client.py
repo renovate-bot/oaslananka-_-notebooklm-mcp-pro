@@ -213,6 +213,14 @@ class FakeArtifactsAPI:
         self.calls.append(("revise_slide", (notebook_id, artifact_id, slide_index, prompt), {}))
         return {"task_id": "revision-1", "status": "pending"}
 
+    async def delete(self, notebook_id: str, artifact_id: str) -> bool:
+        self.calls.append(("delete", (notebook_id, artifact_id), {}))
+        return True
+
+    async def cancel(self, notebook_id: str, task_id: str) -> bool:
+        self.calls.append(("cancel", (notebook_id, task_id), {}))
+        return True
+
 
 class FakeSettingsAPI:
     def __init__(self) -> None:
@@ -237,6 +245,7 @@ class FakeNotebookLMClient:
         self.research = FakeResearchAPI()
         self.artifacts = FakeArtifactsAPI()
         self.settings = FakeSettingsAPI()
+        self.notes = self
         self.entered = False
         self.exited = False
 
@@ -246,6 +255,12 @@ class FakeNotebookLMClient:
 
     async def __aexit__(self, exc_type: object, exc_value: object, traceback: object) -> None:
         self.exited = True
+
+    async def list(self, notebook_id: str, *, limit: int = 100) -> list[dict[str, Any]]:
+        return [{"id": "note-1", "notebook_id": notebook_id, "limit": limit}]
+
+    async def create(self, notebook_id: str, *, title: str, content: str) -> dict[str, str]:
+        return {"id": "note-1", "notebook_id": notebook_id, "title": title, "content": content}
 
 
 async def test_backend_delegates_notebook_operations() -> None:
@@ -388,9 +403,14 @@ async def test_backend_delegates_research_artifact_and_language_operations() -> 
             )
             == "quiz.json"
         )
+        assert await backend.artifact_delete("nb-1", "quiz-1") is True
+        assert await backend.artifact_cancel("nb-1", "audio-1") is True
         assert (await backend.revise_slide("nb-1", "slides-1", 0, "Revise"))["task_id"] == (
             "revision-1"
         )
+        assert await backend.list_notes("nb-1", limit=5) == [
+            {"id": "note-1", "notebook_id": "nb-1", "limit": 5}
+        ]
         assert await backend.get_language() == "en"
         assert await backend.set_language("tr") == "tr"
     finally:

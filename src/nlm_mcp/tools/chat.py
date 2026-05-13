@@ -12,6 +12,7 @@ from nlm_mcp.tools.models import (
     ChatAskInput,
     ChatHistoryInput,
     ConversationStartInput,
+    ListNotesInput,
     SaveToNotesInput,
 )
 
@@ -40,6 +41,62 @@ def register_chat_tools(server: FastMCP, backend: NotebookLMBackend) -> None:
         )
         return await run_tool(
             "chat.ask",
+            payload,
+            lambda: _generic_result(
+                backend.ask(
+                    payload.notebook_id,
+                    payload.question,
+                    source_ids=payload.source_ids,
+                )
+            ),
+        )
+
+    @server.tool(
+        name="chat.query",
+        title="Query Notebook",
+        annotations=tool_annotations(idempotent=False),
+    )
+    async def chat_query(
+        notebook_id: str,
+        question: str,
+        source_ids: list[str] | None = None,
+    ) -> dict[str, Any]:
+        """Alias for `chat.ask` used by OpenAPI clients."""
+        payload = ChatAskInput(
+            notebook_id=notebook_id,
+            question=question,
+            source_ids=source_ids,
+        )
+        return await run_tool(
+            "chat.query",
+            payload,
+            lambda: _generic_result(
+                backend.ask(
+                    payload.notebook_id,
+                    payload.question,
+                    source_ids=payload.source_ids,
+                )
+            ),
+        )
+
+    @server.tool(
+        name="chat.stream_query",
+        title="Stream Query Notebook",
+        annotations=tool_annotations(idempotent=False),
+    )
+    async def chat_stream_query(
+        notebook_id: str,
+        question: str,
+        source_ids: list[str] | None = None,
+    ) -> dict[str, Any]:
+        """Run a NotebookLM query through the non-streaming backend and return one result."""
+        payload = ChatAskInput(
+            notebook_id=notebook_id,
+            question=question,
+            source_ids=source_ids,
+        )
+        return await run_tool(
+            "chat.stream_query",
             payload,
             lambda: _generic_result(
                 backend.ask(
@@ -141,6 +198,36 @@ def register_chat_tools(server: FastMCP, backend: NotebookLMBackend) -> None:
             ),
         )
 
+    @server.tool(
+        name="chat.save_note",
+        title="Save Notebook Note",
+        annotations=tool_annotations(idempotent=False),
+    )
+    async def chat_save_note(notebook_id: str, title: str, content: str) -> dict[str, Any]:
+        """Alias for saving content as a NotebookLM note."""
+        payload = SaveToNotesInput(notebook_id=notebook_id, title=title, content=content)
+        return await run_tool(
+            "chat.save_note",
+            payload,
+            lambda: _generic_result(
+                backend.save_note(payload.notebook_id, payload.title, payload.content)
+            ),
+        )
+
+    @server.tool(
+        name="chat.list_notes",
+        title="List Notebook Notes",
+        annotations=tool_annotations(read_only=True, idempotent=True),
+    )
+    async def chat_list_notes(notebook_id: str, limit: int = 100) -> dict[str, Any]:
+        """List saved NotebookLM notes."""
+        payload = ListNotesInput(notebook_id=notebook_id, limit=limit)
+        return await run_tool(
+            "chat.list_notes",
+            payload,
+            lambda: _list_notes(backend, payload),
+        )
+
 
 async def _start_conversation(
     backend: NotebookLMBackend,
@@ -175,6 +262,11 @@ async def _history(backend: NotebookLMBackend, payload: ChatHistoryInput) -> dic
         conversation_id=payload.conversation_id,
     )
     return {"history": to_plain(history)}
+
+
+async def _list_notes(backend: NotebookLMBackend, payload: ListNotesInput) -> dict[str, Any]:
+    notes = await backend.list_notes(payload.notebook_id, limit=payload.limit)
+    return {"notes": to_plain(notes)}
 
 
 async def _generic_result(awaitable: Awaitable[Any]) -> dict[str, Any]:

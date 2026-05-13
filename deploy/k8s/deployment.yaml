@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notebooklm-mcp-pro
+  labels:
+    app: notebooklm-mcp-pro
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: notebooklm-mcp-pro
+  template:
+    metadata:
+      labels:
+        app: notebooklm-mcp-pro
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+      containers:
+        - name: nlm-mcp
+          image: ghcr.io/oaslananka/notebooklm-mcp-pro:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: NLM_MCP_TRANSPORT
+              value: "http"
+            - name: NLM_MCP_AUTH_MODE
+              valueFrom:
+                secretKeyRef:
+                  name: nlm-mcp-secrets
+                  key: auth_mode
+                  optional: true
+            - name: NLM_MCP_BEARER_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: nlm-mcp-secrets
+                  key: bearer_token
+                  optional: true
+            - name: NLM_MCP_NOTEBOOKLM_AUTH_JSON
+              valueFrom:
+                secretKeyRef:
+                  name: nlm-mcp-secrets
+                  key: notebooklm_auth_json
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: notebooklm-mcp-pro
+spec:
+  selector:
+    app: notebooklm-mcp-pro
+  ports:
+    - port: 80
+      targetPort: 8080
+  type: ClusterIP

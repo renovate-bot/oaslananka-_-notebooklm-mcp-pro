@@ -480,6 +480,13 @@ class NotebookLMBackend:
             retry=False,
         )
 
+    async def list_notes(self, notebook_id: str, *, limit: int = 100) -> Any:
+        """List saved NotebookLM notes for a notebook."""
+        return await self._call(
+            "chat.list_notes",
+            lambda client: client.notes.list(notebook_id, limit=limit),
+        )
+
     async def start_research(
         self,
         notebook_id: str,
@@ -812,6 +819,37 @@ class NotebookLMBackend:
             return await method(notebook_id, output_path, artifact_id=artifact_id)
 
         return await self._call("artifact.download", operation)
+
+    async def artifact_delete(self, notebook_id: str, artifact_id: str) -> Any:
+        """Delete a generated NotebookLM artifact when supported by notebooklm-py."""
+
+        async def operation(client: Any) -> Any:
+            method = getattr(client.artifacts, "delete", None)
+            if method is None:
+                raise BackendValidationError(
+                    "Artifact deletion is not supported by the installed notebooklm-py backend.",
+                    error_code=-32602,
+                    data={"artifact_id": artifact_id},
+                )
+            return await method(notebook_id, artifact_id)
+
+        return await self._call("artifact.delete", operation, retry=False)
+
+    async def artifact_cancel(self, notebook_id: str, task_id: str) -> Any:
+        """Cancel a generated NotebookLM artifact task when supported by notebooklm-py."""
+
+        async def operation(client: Any) -> Any:
+            for method_name in ("cancel", "cancel_task"):
+                method = getattr(client.artifacts, method_name, None)
+                if method is not None:
+                    return await method(notebook_id, task_id)
+            raise BackendValidationError(
+                "Artifact cancellation is not supported by the installed notebooklm-py backend.",
+                error_code=-32602,
+                data={"task_id": task_id},
+            )
+
+        return await self._call("artifact.cancel", operation, retry=False)
 
     async def revise_slide(
         self,

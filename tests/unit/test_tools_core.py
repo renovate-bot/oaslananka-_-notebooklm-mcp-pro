@@ -41,11 +41,16 @@ EXPECTED_CORE_TOOLS = {
     "source.get",
     "source.get_fulltext",
     "source.refresh",
+    "source.wait",
     "source.remove",
     "chat.ask",
+    "chat.query",
+    "chat.stream_query",
     "chat.conversation_start",
     "chat.continue",
     "chat.history",
+    "chat.save_note",
+    "chat.list_notes",
     "chat.save_to_notes",
     "search",
     "fetch",
@@ -235,6 +240,9 @@ class FakeBackend:
     async def save_note(self, notebook_id: str, title: str, content: str) -> dict[str, str]:
         return {"id": "note-1", "notebook_id": notebook_id, "title": title, "content": content}
 
+    async def list_notes(self, notebook_id: str, *, limit: int = 100) -> list[dict[str, Any]]:
+        return [{"id": "note-1", "notebook_id": notebook_id, "limit": limit}]
+
 
 def _fake_server() -> Any:
     return create_server(Settings(), backend=cast(NotebookLMBackend, FakeBackend()))
@@ -339,6 +347,10 @@ async def test_remaining_source_tools_use_backend() -> None:
             "source.refresh",
             {"notebook_id": "nb-1", "source_id": "src-1"},
         )
+        waited = await client.call_tool(
+            "source.wait",
+            {"notebook_id": "nb-1", "source_id": "src-1", "poll_interval_sec": 1},
+        )
 
     assert url.data["result"]["id"] == "src-url"
     assert url.data["result"]["url"] == "https://example.com/article"
@@ -349,6 +361,7 @@ async def test_remaining_source_tools_use_backend() -> None:
     assert source.data["result"]["title"] == "Alpha Source"
     assert fulltext.data["result"]["text"] == "indexed text"
     assert refreshed.data["result"]["status"] == "refreshing"
+    assert waited.data["source"]["id"] == "src-1"
 
 
 async def test_remaining_chat_tools_use_backend() -> None:
@@ -369,12 +382,32 @@ async def test_remaining_chat_tools_use_backend() -> None:
             "chat.save_to_notes",
             {"notebook_id": "nb-1", "title": "Saved", "content": "Answer"},
         )
+        alias_answer = await client.call_tool(
+            "chat.query",
+            {"notebook_id": "nb-1", "question": "Alias?"},
+        )
+        stream_answer = await client.call_tool(
+            "chat.stream_query",
+            {"notebook_id": "nb-1", "question": "Stream?"},
+        )
+        alias_note = await client.call_tool(
+            "chat.save_note",
+            {"notebook_id": "nb-1", "title": "Saved", "content": "Answer"},
+        )
+        notes = await client.call_tool(
+            "chat.list_notes",
+            {"notebook_id": "nb-1", "limit": CHAT_HISTORY_LIMIT},
+        )
 
     assert started.data["conversation_id"] == "conv-from-answer"
     assert started.data["initial_result"]["answer"] == "answer: Start?"
     assert continued.data["result"]["conversation_id"] == "conv-1"
     assert history.data["history"][0]["limit"] == CHAT_HISTORY_LIMIT
     assert note.data["result"]["id"] == "note-1"
+    assert alias_answer.data["result"]["answer"] == "answer: Alias?"
+    assert stream_answer.data["result"]["answer"] == "answer: Stream?"
+    assert alias_note.data["result"]["id"] == "note-1"
+    assert notes.data["notes"][0]["limit"] == CHAT_HISTORY_LIMIT
 
 
 async def test_destructive_tools_require_confirmation() -> None:

@@ -10,8 +10,16 @@ from fastmcp import FastMCP
 from nlm_mcp.backend.exceptions import BackendValidationError
 from nlm_mcp.backend.tasks import TaskStore
 from nlm_mcp.config import Settings
-from nlm_mcp.tools.common import run_tool, stable_id, to_plain, tool_annotations
+from nlm_mcp.tools.common import (
+    require_confirmation,
+    run_tool,
+    stable_id,
+    to_plain,
+    tool_annotations,
+)
 from nlm_mcp.tools.models import (
+    ArtifactCancelInput,
+    ArtifactDeleteInput,
     ArtifactDownloadInput,
     ArtifactListInput,
     ArtifactStatusInput,
@@ -35,7 +43,7 @@ if TYPE_CHECKING:
     from nlm_mcp.backend.client import NotebookLMBackend
 
 
-def register_artifact_tools(
+def register_artifact_tools(  # noqa: PLR0915
     server: FastMCP,
     backend: NotebookLMBackend,
     settings: Settings,
@@ -516,6 +524,62 @@ def register_artifact_tools(
             safe_payload,
             lambda: _download_artifact(backend, safe_payload),
         )
+
+    @server.tool(
+        name="artifact.delete",
+        title="Delete Artifact",
+        annotations=tool_annotations(destructive=True, idempotent=False),
+    )
+    async def artifact_delete(
+        notebook_id: str,
+        artifact_id: str,
+        confirm: bool = False,
+    ) -> dict[str, Any]:
+        """Delete a generated artifact after explicit confirmation."""
+        payload = ArtifactDeleteInput(
+            notebook_id=notebook_id,
+            artifact_id=artifact_id,
+            confirm=confirm,
+        )
+
+        async def operation() -> dict[str, Any]:
+            require_confirmation(payload.confirm, "deleting an artifact")
+            result = await backend.artifact_delete(payload.notebook_id, payload.artifact_id)
+            return {
+                "deleted": bool(to_plain(result)),
+                "notebook_id": payload.notebook_id,
+                "artifact_id": payload.artifact_id,
+            }
+
+        return await run_tool("artifact.delete", payload, operation)
+
+    @server.tool(
+        name="artifact.cancel",
+        title="Cancel Artifact Task",
+        annotations=tool_annotations(destructive=True, idempotent=False),
+    )
+    async def artifact_cancel(
+        notebook_id: str,
+        task_id: str,
+        confirm: bool = False,
+    ) -> dict[str, Any]:
+        """Cancel a running artifact generation task after explicit confirmation."""
+        payload = ArtifactCancelInput(
+            notebook_id=notebook_id,
+            task_id=task_id,
+            confirm=confirm,
+        )
+
+        async def operation() -> dict[str, Any]:
+            require_confirmation(payload.confirm, "canceling an artifact task")
+            result = await backend.artifact_cancel(payload.notebook_id, payload.task_id)
+            return {
+                "canceled": bool(to_plain(result)),
+                "notebook_id": payload.notebook_id,
+                "task_id": payload.task_id,
+            }
+
+        return await run_tool("artifact.cancel", payload, operation)
 
     @server.tool(
         name="artifact.revise_slide",

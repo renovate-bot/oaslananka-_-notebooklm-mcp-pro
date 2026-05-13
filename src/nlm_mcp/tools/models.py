@@ -117,6 +117,13 @@ class ConfirmSourceInput(SourceIdInput):
     confirm: bool = False
 
 
+class SourceWaitInput(SourceIdInput):
+    """Input for `source.wait`."""
+
+    poll_interval_sec: int = Field(default=5, ge=1)
+    timeout_sec: int = Field(default=300, ge=1)
+
+
 class ChatAskInput(NotebookIdInput):
     """Input for `chat.ask` and `chat.continue`."""
 
@@ -144,6 +151,12 @@ class SaveToNotesInput(NotebookIdInput):
 
     title: str = Field(min_length=1, max_length=300)
     content: str = Field(min_length=1)
+
+
+class ListNotesInput(NotebookIdInput):
+    """Input for `chat.list_notes`."""
+
+    limit: int = Field(default=100, ge=1, le=500)
 
 
 class SearchInput(StrictModel):
@@ -319,6 +332,19 @@ class ArtifactDownloadInput(NotebookIdInput):
     output_path: str = Field(min_length=1)
     artifact_id: str | None = Field(default=None, min_length=1)
     output_format: Literal["json", "md", "markdown", "html", "pdf", "pptx"] | None = None
+
+
+class ArtifactDeleteInput(NotebookIdInput):
+    """Input for `artifact.delete`."""
+
+    artifact_id: str = Field(min_length=1)
+    confirm: bool = False
+
+
+class ArtifactCancelInput(ArtifactStatusInput):
+    """Input for `artifact.cancel`."""
+
+    confirm: bool = False
 
 
 class ReviseSlideInput(NotebookIdInput):

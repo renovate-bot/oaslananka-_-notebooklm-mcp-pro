@@ -13,6 +13,8 @@ paths = [
   '''\.env\.example$''',
   '''deploy/k8s/secret\.yaml\.example$''',
   '''docs/.*''',
+  '''^deployment/.*/index\.html$''',
+  '''^search/search_index\.json$''',
   '''README\.md$''',
   '''tests/.*''',
   '''\.gitleaks\.toml$''',

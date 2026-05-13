@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from typing import Any, cast
+from urllib.parse import urlsplit
 
 import pytest
 from fastmcp import Client
@@ -371,7 +372,12 @@ async def test_research_language_and_prompts(tmp_path: Path) -> None:
         item.name for item in prompts
     }
     assert "quiz, flashcards, and a mind map" in study_prompt.messages[0].content.text
-    assert "https://example.com" in research_prompt.messages[0].content.text
+    research_prompt_urls = [
+        urlsplit(token.strip(".,")).geturl()
+        for token in research_prompt.messages[0].content.text.split()
+        if token.startswith(("http://", "https://"))
+    ]
+    assert "https://example.com" in research_prompt_urls
     assert "meeting.txt" in meeting_prompt.messages[0].content.text
     assert "paper.pdf" in paper_prompt.messages[0].content.text
 

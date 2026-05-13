@@ -377,7 +377,7 @@ async def test_research_language_and_prompts(tmp_path: Path) -> None:
         for token in research_prompt.messages[0].content.text.split()
         if token.startswith(("http://", "https://"))
     ]
-    assert "https://example.com" in research_prompt_urls
+    assert research_prompt_urls == ["https://example.com"]
     assert "meeting.txt" in meeting_prompt.messages[0].content.text
     assert "paper.pdf" in paper_prompt.messages[0].content.text
 

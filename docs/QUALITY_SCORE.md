@@ -31,7 +31,7 @@ Commit: 46538068a5c5de5ba84b8dff40045019cf4e1f56
 
 The hardening pass adds or changes:
 
-- OpenSSF Scorecard workflow with SARIF upload and public result publishing.
+- OpenSSF Scorecard workflow with SARIF upload.
 - Top-level read-only workflow permissions with job-level write permissions.
 - Full SHA pinning for GitHub Actions introduced by the hardening pass.
 - Digest pinning for Docker base images and checksum verification for the Gitleaks scanner binary.
@@ -55,13 +55,13 @@ The hardening pass adds or changes:
 | Pinned-Dependencies | 7 | 9-10 | Remaining result depends on Scorecard parser support for pinned composite actions. |
 | Token-Permissions | 0 | 9-10 | Write scopes moved to job-level only. |
 | Signed-Releases | 0 | 8-10 | Requires running `Sign Release Artifacts` for existing releases. |
-| Branch-Protection | 4 | 8-10 | Requires stricter repository settings after this branch is merged. |
+| Branch-Protection | 4 | 8-10 | Requires stricter repository settings after the hardening PR is merged. |
 | CI-Tests | -1 | 8-10 | Requires a merged pull request with passing checks. |
 | Code-Review | 0 | 0-10 | Requires a real non-author review or implicit merge-by-different-user history. |
 | Maintained | 0 | Time-gated | Scorecard does not fully score repos younger than 90 days. |
 | Contributors | 3 | Community-gated | Requires contributors from multiple organizations. |
 | CII-Best-Practices | 0 | External-gated | Requires an OpenSSF Best Practices badge application. |
-| Fuzzing | 0 | 8-10 | ClusterFuzzLite is deployed with a Python Atheris fuzz target. |
+| Fuzzing | 0 | 10 | ClusterFuzzLite is deployed with a Python Atheris fuzz target. |
 
 ## Release Verification
 

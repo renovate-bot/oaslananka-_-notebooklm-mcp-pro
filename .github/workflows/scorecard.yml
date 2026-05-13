@@ -31,7 +31,18 @@ jobs:
           results_file: scorecard.sarif
           results_format: sarif
           publish_results: false
+      - name: Check Scorecard SARIF
+        id: scorecard_sarif
+        shell: bash
+        run: |
+          if [ -s scorecard.sarif ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Scorecard completed without a local SARIF file; skipping upload."
+          fi
       - name: Upload Scorecard SARIF
+        if: steps.scorecard_sarif.outputs.present == 'true'
         uses: github/codeql-action/upload-sarif@68bde559dea0fdcac2102bfdf6230c5f70eb485e # v4.35.4
         with:
           sarif_file: scorecard.sarif

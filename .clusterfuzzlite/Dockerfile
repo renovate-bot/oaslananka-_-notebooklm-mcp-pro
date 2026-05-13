@@ -1,7 +1,10 @@
+FROM ghcr.io/astral-sh/uv:0.9.30@sha256:538e0b39736e7feae937a65983e49d2ab75e1559d35041f9878b7b7e51de91e4 AS uv
+
 FROM gcr.io/oss-fuzz-base/base-builder-python@sha256:52b32769a56b9fe3350908266099d78852626ea44664ffdc7c12f43f62abb3f8
 
-RUN python3 -m pip install --no-cache-dir uv==0.9.30 \
-    && groupadd --system fuzzbuilder \
+COPY --from=uv /uv /usr/local/bin/uv
+
+RUN groupadd --system fuzzbuilder \
     && useradd --system --uid 10001 --gid fuzzbuilder --create-home fuzzbuilder \
     && mkdir -p /out /work \
     && chmod 1777 /out /work

@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   validate-tag:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, ubuntu-latest]
     steps:
       - uses: actions/checkout@v4
       - name: Validate tag matches pyproject.toml version
@@ -25,7 +25,7 @@ jobs:
 
   build:
     needs: validate-tag
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, ubuntu-latest]
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v3
@@ -41,7 +41,7 @@ jobs:
 
   sbom:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, ubuntu-latest]
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v3
@@ -57,7 +57,7 @@ jobs:
 
   pypi-publish:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, ubuntu-latest]
     environment: pypi
     steps:
       - uses: actions/download-artifact@v4
@@ -68,7 +68,7 @@ jobs:
 
   docker-publish:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, ubuntu-latest]
     steps:
       - uses: actions/checkout@v4
       - uses: docker/login-action@v3
@@ -95,7 +95,7 @@ jobs:
 
   github-release:
     needs: [pypi-publish, docker-publish, sbom]
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, ubuntu-latest]
     steps:
       - uses: actions/checkout@v4
         with:

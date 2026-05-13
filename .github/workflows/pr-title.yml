@@ -13,7 +13,7 @@ env:
 jobs:
   validate:
     name: pr-title
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, ubuntu-latest]
     steps:
       - name: Validate Conventional Commit title
         env:

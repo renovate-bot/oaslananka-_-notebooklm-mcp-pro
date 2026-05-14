@@ -71,6 +71,13 @@ def _notebooklm_default_auth_file() -> Path:
     return storage_path
 
 
+def _newest_existing_auth_file(*paths: Path) -> Path | None:
+    existing_paths = [path for path in paths if path.exists()]
+    if not existing_paths:
+        return None
+    return max(existing_paths, key=lambda path: path.stat().st_mtime)
+
+
 @dataclass(frozen=True)
 class AuthSource:
     """Resolved NotebookLM authentication source."""
@@ -87,13 +94,14 @@ def resolve_auth_source(settings: Settings) -> AuthSource:
             return AuthSource(kind="env_json", value=auth_json)
 
     auth_file = settings.notebooklm_auth_file.expanduser()
-    if auth_file.exists():
-        return AuthSource(kind="file", value=str(auth_file))
     if auth_file == DEFAULT_NOTEBOOKLM_AUTH_FILE:
         notebooklm_default_auth_file = _notebooklm_default_auth_file()
-        if notebooklm_default_auth_file.exists():
-            return AuthSource(kind="file", value=str(notebooklm_default_auth_file))
+        newest_auth_file = _newest_existing_auth_file(notebooklm_default_auth_file, auth_file)
+        if newest_auth_file is not None:
+            return AuthSource(kind="file", value=str(newest_auth_file))
         return AuthSource(kind="default", value=str(notebooklm_default_auth_file))
+    if auth_file.exists():
+        return AuthSource(kind="file", value=str(auth_file))
     raise BackendAuthError(
         "NotebookLM auth file not found.",
         error_code=-32002,

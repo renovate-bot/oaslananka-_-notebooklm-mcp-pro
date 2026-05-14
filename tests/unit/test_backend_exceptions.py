@@ -53,6 +53,23 @@ def test_file_not_found_mapping_does_not_leak_path() -> None:
     assert "private" not in str(mapped.to_mcp_error())
 
 
+def test_notebooklm_value_error_auth_redirect_maps_to_auth_error() -> None:
+    mapped = map_backend_exception(
+        ValueError(
+            "Authentication expired or invalid. Redirected to: "
+            "https://accounts.google.com/signin. Run 'notebooklm login' to re-authenticate."
+        )
+    )
+
+    assert isinstance(mapped, BackendAuthError)
+    assert mapped.error_code == AUTH_ERROR_CODE
+    assert (
+        mapped.safe_message
+        == "Authentication failed. Re-authenticate the configured NotebookLM storage."
+    )
+    assert "accounts.google.com" not in str(mapped.to_mcp_error())
+
+
 def test_timeout_error_mapping_uses_timeout_code() -> None:
     mapped = map_backend_exception(RPCTimeoutError("slow", timeout_seconds=TIMEOUT_SECONDS))
 

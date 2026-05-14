@@ -61,6 +61,15 @@ def _base_data(exc: Exception) -> dict[str, Any]:
     return {"backend_error_class": exc.__class__.__name__}
 
 
+def _looks_like_notebooklm_auth_failure(exc: Exception) -> bool:
+    message = str(exc).lower()
+    return (
+        "authentication expired or invalid" in message
+        or "run 'notebooklm login'" in message
+        or "run `notebooklm login`" in message
+    )
+
+
 def map_backend_exception(exc: Exception) -> BackendError:
     """Map notebooklm-py and transport exceptions to sanitized backend errors."""
     if isinstance(exc, BackendError):
@@ -81,6 +90,7 @@ def map_backend_exception(exc: Exception) -> BackendError:
         ValidationError,
     )
 
+    is_auth_failure_by_message = _looks_like_notebooklm_auth_failure(exc)
     mapped: BackendError
     if isinstance(exc, RateLimitError):
         data = _base_data(exc)
@@ -91,8 +101,15 @@ def map_backend_exception(exc: Exception) -> BackendError:
             error_code=-32001,
             data=data,
         )
-    elif isinstance(exc, (AuthError, ConfigurationError, FileNotFoundError)):
-        mapped = BackendAuthError("Authentication failed.", error_code=-32002, data=_base_data(exc))
+    elif isinstance(exc, (AuthError, ConfigurationError, FileNotFoundError)) or (
+        is_auth_failure_by_message
+    ):
+        auth_message = (
+            "Authentication failed. Re-authenticate the configured NotebookLM storage."
+            if is_auth_failure_by_message
+            else "Authentication failed."
+        )
+        mapped = BackendAuthError(auth_message, error_code=-32002, data=_base_data(exc))
     elif isinstance(exc, (RPCTimeoutError, TimeoutError)):
         data = _base_data(exc)
         timeout_seconds = getattr(exc, "timeout_seconds", None)

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 from pathlib import Path
 from typing import Any
 
@@ -726,6 +727,46 @@ def test_resolve_auth_source_uses_notebooklm_cli_default_when_present(
     source = resolve_auth_source(Settings(notebooklm_auth_file=default_path))
 
     assert source == AuthSource(kind="file", value=str(cli_default_path))
+
+
+def test_resolve_auth_source_prefers_newer_notebooklm_cli_default_over_project_default(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    project_default_path = tmp_path / "project" / "notebooklm_auth.json"
+    cli_default_path = tmp_path / "profiles" / "default" / "storage_state.json"
+    project_default_path.parent.mkdir(parents=True)
+    cli_default_path.parent.mkdir(parents=True)
+    project_default_path.write_text('{"cookies": [{"name": "expired"}]}', encoding="utf-8")
+    cli_default_path.write_text('{"cookies": [{"name": "active"}]}', encoding="utf-8")
+    os.utime(project_default_path, (100, 100))
+    os.utime(cli_default_path, (200, 200))
+    monkeypatch.setattr(client_module, "DEFAULT_NOTEBOOKLM_AUTH_FILE", project_default_path)
+    monkeypatch.setattr(client_module, "_notebooklm_default_auth_file", lambda: cli_default_path)
+
+    source = resolve_auth_source(Settings(notebooklm_auth_file=project_default_path))
+
+    assert source == AuthSource(kind="file", value=str(cli_default_path))
+
+
+def test_resolve_auth_source_prefers_newer_project_default_over_notebooklm_cli_default(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    project_default_path = tmp_path / "project" / "notebooklm_auth.json"
+    cli_default_path = tmp_path / "profiles" / "default" / "storage_state.json"
+    project_default_path.parent.mkdir(parents=True)
+    cli_default_path.parent.mkdir(parents=True)
+    project_default_path.write_text('{"cookies": [{"name": "active"}]}', encoding="utf-8")
+    cli_default_path.write_text('{"cookies": [{"name": "expired"}]}', encoding="utf-8")
+    os.utime(project_default_path, (200, 200))
+    os.utime(cli_default_path, (100, 100))
+    monkeypatch.setattr(client_module, "DEFAULT_NOTEBOOKLM_AUTH_FILE", project_default_path)
+    monkeypatch.setattr(client_module, "_notebooklm_default_auth_file", lambda: cli_default_path)
+
+    source = resolve_auth_source(Settings(notebooklm_auth_file=project_default_path))
+
+    assert source == AuthSource(kind="file", value=str(project_default_path))
 
 
 def test_resolve_auth_source_honors_notebooklm_profile_env(

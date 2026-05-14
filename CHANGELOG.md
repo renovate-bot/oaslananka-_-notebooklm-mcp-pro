@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.4] - 2026-05-14
+
+### Fixed
+
+- NotebookLM auth resolution now selects the newest existing canonical auth file when both the active `notebooklm` CLI profile and the legacy project default path exist, preventing stale auth files from shadowing a fresh login.
+- Expired NotebookLM sessions reported by `notebooklm-py` as auth redirect errors now map to MCP auth error code `-32002` with a safe storage-neutral re-authentication message.
+
 ## [1.0.3] - 2026-05-14
 
 ### Fixed

@@ -6,6 +6,11 @@ The canonical changelog lives at:
 https://github.com/oaslananka/notebooklm-mcp-pro/blob/main/CHANGELOG.md
 ```
 
+## 1.0.4
+
+Patch release with NotebookLM auth resolution corrected so the newest canonical
+auth file is selected, plus safer expired-session error mapping.
+
 ## 1.0.3
 
 Patch release with the release workflow corrected so PyPI receives only wheel

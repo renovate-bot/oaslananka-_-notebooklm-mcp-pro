@@ -10,7 +10,13 @@ from typing import TYPE_CHECKING, Any
 from fastmcp import FastMCP
 
 from nlm_mcp.backend.exceptions import BackendTimeoutError, BackendValidationError
-from nlm_mcp.tools.common import require_confirmation, run_tool, to_plain, tool_annotations
+from nlm_mcp.tools.common import (
+    require_confirmation,
+    run_tool,
+    to_plain,
+    tool_annotations,
+    tool_public_name,
+)
 from nlm_mcp.tools.models import (
     ConfirmSourceInput,
     NotebookIdInput,
@@ -30,7 +36,7 @@ def register_source_tools(server: FastMCP, backend: NotebookLMBackend) -> None:
     """Register NotebookLM source tools."""
 
     @server.tool(
-        name="source.add_url",
+        name=tool_public_name("source.add_url"),
         title="Add URL Source",
         annotations=tool_annotations(idempotent=False, open_world=True),
     )
@@ -48,7 +54,7 @@ def register_source_tools(server: FastMCP, backend: NotebookLMBackend) -> None:
         )
 
     @server.tool(
-        name="source.add_youtube",
+        name=tool_public_name("source.add_youtube"),
         title="Add YouTube Source",
         annotations=tool_annotations(idempotent=False, open_world=True),
     )
@@ -66,7 +72,7 @@ def register_source_tools(server: FastMCP, backend: NotebookLMBackend) -> None:
         )
 
     @server.tool(
-        name="source.add_file",
+        name=tool_public_name("source.add_file"),
         title="Add File Source",
         annotations=tool_annotations(idempotent=False),
     )
@@ -97,7 +103,7 @@ def register_source_tools(server: FastMCP, backend: NotebookLMBackend) -> None:
         )
 
     @server.tool(
-        name="source.add_gdrive",
+        name=tool_public_name("source.add_gdrive"),
         title="Add Google Drive Source",
         annotations=tool_annotations(idempotent=False, open_world=True),
     )
@@ -131,7 +137,7 @@ def register_source_tools(server: FastMCP, backend: NotebookLMBackend) -> None:
         )
 
     @server.tool(
-        name="source.add_text",
+        name=tool_public_name("source.add_text"),
         title="Add Text Source",
         annotations=tool_annotations(idempotent=False),
     )
@@ -162,7 +168,7 @@ def register_source_tools(server: FastMCP, backend: NotebookLMBackend) -> None:
         )
 
     @server.tool(
-        name="source.list",
+        name=tool_public_name("source.list"),
         title="List Sources",
         annotations=tool_annotations(read_only=True, idempotent=True),
     )
@@ -176,7 +182,7 @@ def register_source_tools(server: FastMCP, backend: NotebookLMBackend) -> None:
         )
 
     @server.tool(
-        name="source.get",
+        name=tool_public_name("source.get"),
         title="Get Source",
         annotations=tool_annotations(read_only=True, idempotent=True),
     )
@@ -190,7 +196,7 @@ def register_source_tools(server: FastMCP, backend: NotebookLMBackend) -> None:
         )
 
     @server.tool(
-        name="source.get_fulltext",
+        name=tool_public_name("source.get_fulltext"),
         title="Get Source Full Text",
         annotations=tool_annotations(read_only=True, idempotent=True),
     )
@@ -206,7 +212,7 @@ def register_source_tools(server: FastMCP, backend: NotebookLMBackend) -> None:
         )
 
     @server.tool(
-        name="source.refresh",
+        name=tool_public_name("source.refresh"),
         title="Refresh Source",
         annotations=tool_annotations(idempotent=True),
     )
@@ -220,7 +226,7 @@ def register_source_tools(server: FastMCP, backend: NotebookLMBackend) -> None:
         )
 
     @server.tool(
-        name="source.wait",
+        name=tool_public_name("source.wait"),
         title="Wait For Source",
         annotations=tool_annotations(read_only=True, idempotent=False),
     )
@@ -244,7 +250,7 @@ def register_source_tools(server: FastMCP, backend: NotebookLMBackend) -> None:
         )
 
     @server.tool(
-        name="source.remove",
+        name=tool_public_name("source.remove"),
         title="Remove Source",
         annotations=tool_annotations(destructive=True, idempotent=False),
     )

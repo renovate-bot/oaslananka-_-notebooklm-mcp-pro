@@ -165,6 +165,13 @@ The default auth file is:
 ~/.config/nlm-mcp/notebooklm_auth.json
 ```
 
+If that file is not present, the server also detects the NotebookLM CLI default
+profile at:
+
+```text
+~/.notebooklm/profiles/default/storage_state.json
+```
+
 Override it with:
 
 ```bash
@@ -300,7 +307,7 @@ https://your-server.example.com/mcp
 
 Choose bearer token or OAuth based on server configuration.
 
-Run `admin.health` to verify.
+Run `admin_health` to verify.
 
 ### ChatGPT Custom Actions
 
@@ -361,92 +368,96 @@ https://your-server.example.com/mcp
 
 ## 🛠 Tools
 
+MCP-visible tool names use underscores for compatibility with VS Code and other
+strict clients. The OpenAPI action paths keep the canonical dotted names such as
+`/tools/notebook.list`.
+
 ### Notebook tools
 
 | Tool | Purpose | Safety |
 |---|---|---|
-| `notebook.list` | List notebooks | read-only |
-| `notebook.create` | Create a notebook | mutating |
-| `notebook.get` | Get notebook metadata | read-only |
-| `notebook.rename` | Rename a notebook | idempotent |
-| `notebook.delete` | Delete a notebook | destructive, confirmation required |
-| `notebook.share_public` | Toggle public sharing | destructive, confirmation required when enabling |
-| `notebook.share_invite` | Invite collaborator | mutating, confirmation required |
-| `notebook.share_status` | Read sharing settings | read-only |
+| `notebook_list` | List notebooks | read-only |
+| `notebook_create` | Create a notebook | mutating |
+| `notebook_get` | Get notebook metadata | read-only |
+| `notebook_rename` | Rename a notebook | idempotent |
+| `notebook_delete` | Delete a notebook | destructive, confirmation required |
+| `notebook_share_public` | Toggle public sharing | destructive, confirmation required when enabling |
+| `notebook_share_invite` | Invite collaborator | mutating, confirmation required |
+| `notebook_share_status` | Read sharing settings | read-only |
 
 ### Source tools
 
 | Tool | Purpose | Safety |
 |---|---|---|
-| `source.add_url` | Add a web URL | mutating |
-| `source.add_youtube` | Add a YouTube video | mutating |
-| `source.add_file` | Upload a local file | mutating |
-| `source.add_gdrive` | Add a Google Drive document | mutating |
-| `source.add_text` | Add pasted text | mutating |
-| `source.list` | List sources | read-only |
-| `source.get` | Get source metadata | read-only |
-| `source.get_fulltext` | Get indexed text | read-only |
-| `source.refresh` | Re-index a source | idempotent |
-| `source.wait` | Wait for indexing | read-only, blocking |
-| `source.remove` | Remove a source | destructive, confirmation required |
+| `source_add_url` | Add a web URL | mutating |
+| `source_add_youtube` | Add a YouTube video | mutating |
+| `source_add_file` | Upload a local file | mutating |
+| `source_add_gdrive` | Add a Google Drive document | mutating |
+| `source_add_text` | Add pasted text | mutating |
+| `source_list` | List sources | read-only |
+| `source_get` | Get source metadata | read-only |
+| `source_get_fulltext` | Get indexed text | read-only |
+| `source_refresh` | Re-index a source | idempotent |
+| `source_wait` | Wait for indexing | read-only, blocking |
+| `source_remove` | Remove a source | destructive, confirmation required |
 
 ### Chat tools
 
 | Tool | Purpose |
 |---|---|
-| `chat.ask` | Ask a one-shot question |
-| `chat.query` | OpenAPI alias for asking |
-| `chat.stream_query` | Stream-oriented alias returning a completed result |
-| `chat.conversation_start` | Start or identify a conversation |
-| `chat.continue` | Continue a conversation |
-| `chat.history` | Read conversation history |
-| `chat.save_to_notes` | Save content as a note |
-| `chat.save_note` | Alias for note save |
-| `chat.list_notes` | List notes |
+| `chat_ask` | Ask a one-shot question |
+| `chat_query` | OpenAPI alias for asking |
+| `chat_stream_query` | Stream-oriented alias returning a completed result |
+| `chat_conversation_start` | Start or identify a conversation |
+| `chat_continue` | Continue a conversation |
+| `chat_history` | Read conversation history |
+| `chat_save_to_notes` | Save content as a note |
+| `chat_save_note` | Alias for note save |
+| `chat_list_notes` | List notes |
 
 ### Research tools
 
 | Tool | Purpose |
 |---|---|
-| `research.web_start` | Start web research |
-| `research.drive_start` | Start Drive research |
-| `research.status` | Poll research status |
-| `research.wait` | Wait for research and optionally import sources |
+| `research_web_start` | Start web research |
+| `research_drive_start` | Start Drive research |
+| `research_status` | Poll research status |
+| `research_wait` | Wait for research and optionally import sources |
 
 ### Generation tools
 
 | Tool | Output |
 |---|---|
-| `generate.audio_overview` | Audio overview |
-| `generate.video_overview` | Video overview |
-| `generate.cinematic_video` | Cinematic video |
-| `generate.slide_deck` | Slide deck |
-| `generate.infographic` | Infographic |
-| `generate.quiz` | Quiz |
-| `generate.flashcards` | Flashcards |
-| `generate.report` | Report |
-| `generate.data_table` | Data table |
-| `generate.mind_map` | Mind map |
+| `generate_audio_overview` | Audio overview |
+| `generate_video_overview` | Video overview |
+| `generate_cinematic_video` | Cinematic video |
+| `generate_slide_deck` | Slide deck |
+| `generate_infographic` | Infographic |
+| `generate_quiz` | Quiz |
+| `generate_flashcards` | Flashcards |
+| `generate_report` | Report |
+| `generate_data_table` | Data table |
+| `generate_mind_map` | Mind map |
 
 ### Artifact lifecycle tools
 
 | Tool | Purpose |
 |---|---|
-| `artifact.list` | List artifacts and tracked tasks |
-| `artifact.status` | Poll task status |
-| `artifact.wait` | Wait for task completion |
-| `artifact.download` | Download an artifact |
-| `artifact.delete` | Delete an artifact when supported |
-| `artifact.cancel` | Cancel a task when supported |
-| `artifact.revise_slide` | Revise one slide |
+| `artifact_list` | List artifacts and tracked tasks |
+| `artifact_status` | Poll task status |
+| `artifact_wait` | Wait for task completion |
+| `artifact_download` | Download an artifact |
+| `artifact_delete` | Delete an artifact when supported |
+| `artifact_cancel` | Cancel a task when supported |
+| `artifact_revise_slide` | Revise one slide |
 
 ### Language tools
 
 | Tool | Purpose |
 |---|---|
-| `language.list` | List supported languages |
-| `language.get` | Read current output language |
-| `language.set` | Set account-global output language |
+| `language_list` | List supported languages |
+| `language_get` | Read current output language |
+| `language_set` | Set account-global output language |
 
 ### Compatibility tools
 
@@ -459,8 +470,8 @@ https://your-server.example.com/mcp
 
 | Tool | Purpose |
 |---|---|
-| `admin.health` | Server health |
-| `admin.version` | Package and runtime version |
+| `admin_health` | Server health |
+| `admin_version` | Package and runtime version |
 
 ---
 

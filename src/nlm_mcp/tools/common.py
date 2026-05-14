@@ -37,6 +37,11 @@ def tool_annotations(
     )
 
 
+def tool_public_name(canonical_name: str) -> str:
+    """Return the MCP-visible tool name accepted by stricter clients such as VS Code."""
+    return canonical_name.replace(".", "_")
+
+
 def to_plain(value: Any) -> Any:
     """Convert notebooklm-py return values into JSON-compatible structures."""
     plain: Any

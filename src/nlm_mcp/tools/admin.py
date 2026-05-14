@@ -12,6 +12,7 @@ from pydantic import BaseModel, ConfigDict
 
 from nlm_mcp import __version__
 from nlm_mcp.config import Settings
+from nlm_mcp.tools.common import tool_public_name
 
 
 class HealthOutput(BaseModel):
@@ -70,7 +71,7 @@ def register_admin_tools(server: FastMCP, settings: Settings) -> None:
     )
 
     @server.tool(
-        name="admin.health",
+        name=tool_public_name("admin.health"),
         title="Server Health",
         annotations=read_only,
     )
@@ -79,7 +80,7 @@ def register_admin_tools(server: FastMCP, settings: Settings) -> None:
         return build_health(settings).model_dump()
 
     @server.tool(
-        name="admin.version",
+        name=tool_public_name("admin.version"),
         title="Server Version",
         annotations=read_only,
     )

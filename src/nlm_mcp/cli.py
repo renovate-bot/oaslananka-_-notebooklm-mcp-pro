@@ -230,7 +230,12 @@ def login(
     auth_file = Settings.from_overrides(auth_mode=AuthMode.NONE).notebooklm_auth_file.expanduser()
     typer.echo(
         "Use the NotebookLM CLI to create the auth file configured by "
-        f'NLM_MCP_NOTEBOOKLM_AUTH_FILE:\npython -m notebooklm login --storage "{auth_file}"'
+        "NLM_MCP_NOTEBOOKLM_AUTH_FILE:\n"
+        f'notebooklm login --storage "{auth_file}"\n\n'
+        "If the console script is not on PATH, use:\n"
+        f'python -m notebooklm login --storage "{auth_file}"\n\n'
+        "For isolated uv usage, use:\n"
+        f'uvx --from notebooklm-py notebooklm login --storage "{auth_file}"'
     )
 
 
@@ -238,9 +243,25 @@ def login(
 def doctor() -> None:
     """Print local environment diagnostics."""
     settings = Settings()
+    from nlm_mcp.backend.client import resolve_auth_source  # noqa: PLC0415
+    from nlm_mcp.backend.exceptions import BackendAuthError  # noqa: PLC0415
+
+    try:
+        auth_source = resolve_auth_source(settings)
+        notebooklm_auth = {
+            "kind": auth_source.kind,
+            "value": "env_json" if auth_source.kind == "env_json" else auth_source.value,
+        }
+    except BackendAuthError as exc:
+        notebooklm_auth = {
+            "kind": "missing",
+            "value": str(settings.notebooklm_auth_file.expanduser()),
+            "message": exc.safe_message,
+        }
     data = build_version_info().model_dump()
     data["transport"] = settings.transport.value
     data["auth_mode"] = settings.auth_mode.value
+    data["notebooklm_auth"] = notebooklm_auth
     typer.echo(json.dumps(data, sort_keys=True))
 
 

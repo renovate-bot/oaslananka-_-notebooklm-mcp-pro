@@ -35,7 +35,7 @@ def _server(backend: LanguageBackend | None = None) -> Any:
 
 async def test_language_list_returns_supported_languages() -> None:
     async with Client(_server()) as client:
-        result = await client.call_tool("language.list", {})
+        result = await client.call_tool("language_list", {})
 
     assert result.data["count"] >= MIN_SUPPORTED_LANGUAGES
     assert {"code": "en", "name": "English"} in result.data["languages"]
@@ -43,7 +43,7 @@ async def test_language_list_returns_supported_languages() -> None:
 
 async def test_language_get_returns_current_language() -> None:
     async with Client(_server()) as client:
-        result = await client.call_tool("language.get", {})
+        result = await client.call_tool("language_get", {})
 
     assert result.data == {"language": "en", "name": "English"}
 
@@ -51,13 +51,13 @@ async def test_language_get_returns_current_language() -> None:
 async def test_language_set_requires_confirmation() -> None:
     async with Client(_server()) as client:
         with pytest.raises(ToolError, match="Confirmation required"):
-            await client.call_tool("language.set", {"language": "tr"})
+            await client.call_tool("language_set", {"language": "tr"})
 
 
 async def test_language_set_valid_language() -> None:
     backend = LanguageBackend()
     async with Client(_server(backend)) as client:
-        result = await client.call_tool("language.set", {"language": "tr", "confirm": True})
+        result = await client.call_tool("language_set", {"language": "tr", "confirm": True})
 
     assert result.data["language"] == "tr"
     assert backend.language == "tr"
@@ -66,4 +66,4 @@ async def test_language_set_valid_language() -> None:
 async def test_language_set_invalid_language_errors() -> None:
     async with Client(_server()) as client:
         with pytest.raises(ToolError, match="Unsupported NotebookLM language"):
-            await client.call_tool("language.set", {"language": "xx-invalid", "confirm": True})
+            await client.call_tool("language_set", {"language": "xx-invalid", "confirm": True})

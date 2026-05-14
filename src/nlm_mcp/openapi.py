@@ -8,6 +8,7 @@ from typing import Any
 from pydantic import BaseModel
 
 from nlm_mcp import __version__
+from nlm_mcp.tools.common import tool_public_name
 from nlm_mcp.tools.models import (
     ArtifactCancelInput,
     ArtifactDeleteInput,
@@ -579,4 +580,4 @@ OPENAPI_SCHEMA: dict[str, Any] = {
 
 def resolve_tool_name(tool_name: str) -> str:
     """Return the MCP tool name backing an OpenAPI action name."""
-    return TOOL_ALIASES.get(tool_name, tool_name)
+    return tool_public_name(TOOL_ALIASES.get(tool_name, tool_name))

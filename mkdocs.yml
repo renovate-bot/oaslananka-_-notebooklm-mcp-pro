@@ -95,6 +95,9 @@ nav:
       - Kubernetes: deployment/kubernetes.md
       - Self-hosted: deployment/self-hosted.md
   - Security: security.md
+  - Threat Model: THREAT_MODEL.md
+  - OSPS Baseline: OSPS_BASELINE.md
+  - Release Verification: release-verification.md
   - Quality Score: QUALITY_SCORE.md
   - Technical Debt: TECH_DEBT.md
   - Roadmap: ROADMAP.md

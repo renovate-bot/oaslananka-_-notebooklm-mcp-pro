@@ -7,7 +7,13 @@ from typing import TYPE_CHECKING, Any
 
 from fastmcp import FastMCP
 
-from nlm_mcp.tools.common import require_confirmation, run_tool, to_plain, tool_annotations
+from nlm_mcp.tools.common import (
+    require_confirmation,
+    run_tool,
+    to_plain,
+    tool_annotations,
+    tool_public_name,
+)
 from nlm_mcp.tools.models import (
     ConfirmNotebookInput,
     NotebookCreateInput,
@@ -26,7 +32,7 @@ def register_notebook_tools(server: FastMCP, backend: NotebookLMBackend) -> None
     """Register NotebookLM notebook tools."""
 
     @server.tool(
-        name="notebook.list",
+        name=tool_public_name("notebook.list"),
         title="List Notebooks",
         annotations=tool_annotations(read_only=True, idempotent=True),
     )
@@ -40,7 +46,7 @@ def register_notebook_tools(server: FastMCP, backend: NotebookLMBackend) -> None
         )
 
     @server.tool(
-        name="notebook.create",
+        name=tool_public_name("notebook.create"),
         title="Create Notebook",
         annotations=tool_annotations(idempotent=False),
     )
@@ -54,7 +60,7 @@ def register_notebook_tools(server: FastMCP, backend: NotebookLMBackend) -> None
         )
 
     @server.tool(
-        name="notebook.get",
+        name=tool_public_name("notebook.get"),
         title="Get Notebook",
         annotations=tool_annotations(read_only=True, idempotent=True),
     )
@@ -68,7 +74,7 @@ def register_notebook_tools(server: FastMCP, backend: NotebookLMBackend) -> None
         )
 
     @server.tool(
-        name="notebook.rename",
+        name=tool_public_name("notebook.rename"),
         title="Rename Notebook",
         annotations=tool_annotations(idempotent=True),
     )
@@ -82,7 +88,7 @@ def register_notebook_tools(server: FastMCP, backend: NotebookLMBackend) -> None
         )
 
     @server.tool(
-        name="notebook.delete",
+        name=tool_public_name("notebook.delete"),
         title="Delete Notebook",
         annotations=tool_annotations(destructive=True, idempotent=False),
     )
@@ -98,7 +104,7 @@ def register_notebook_tools(server: FastMCP, backend: NotebookLMBackend) -> None
         return await run_tool("notebook.delete", payload, operation)
 
     @server.tool(
-        name="notebook.share_public",
+        name=tool_public_name("notebook.share_public"),
         title="Toggle Public Notebook Sharing",
         annotations=tool_annotations(destructive=True, idempotent=True, open_world=True),
     )
@@ -126,7 +132,7 @@ def register_notebook_tools(server: FastMCP, backend: NotebookLMBackend) -> None
         )
 
     @server.tool(
-        name="notebook.share_invite",
+        name=tool_public_name("notebook.share_invite"),
         title="Invite Notebook Collaborator",
         annotations=tool_annotations(destructive=True, idempotent=False, open_world=True),
     )
@@ -168,7 +174,7 @@ def register_notebook_tools(server: FastMCP, backend: NotebookLMBackend) -> None
         )
 
     @server.tool(
-        name="notebook.share_status",
+        name=tool_public_name("notebook.share_status"),
         title="Notebook Sharing Status",
         annotations=tool_annotations(read_only=True, idempotent=True),
     )

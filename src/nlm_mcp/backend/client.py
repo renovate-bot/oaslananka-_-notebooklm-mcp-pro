@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any, Literal, TypeVar
 
 from notebooklm import NotebookLMClient
+from notebooklm.paths import get_storage_path
 from notebooklm.rpc.types import (
     AudioFormat,
     AudioLength,
@@ -64,6 +65,12 @@ def _normalize_output_format(output_format: str | None) -> str | None:
     return output_format
 
 
+def _notebooklm_default_auth_file() -> Path:
+    """Return notebooklm-py's active profile storage path."""
+    storage_path: Path = get_storage_path()
+    return storage_path
+
+
 @dataclass(frozen=True)
 class AuthSource:
     """Resolved NotebookLM authentication source."""
@@ -83,7 +90,10 @@ def resolve_auth_source(settings: Settings) -> AuthSource:
     if auth_file.exists():
         return AuthSource(kind="file", value=str(auth_file))
     if auth_file == DEFAULT_NOTEBOOKLM_AUTH_FILE:
-        return AuthSource(kind="default", value="")
+        notebooklm_default_auth_file = _notebooklm_default_auth_file()
+        if notebooklm_default_auth_file.exists():
+            return AuthSource(kind="file", value=str(notebooklm_default_auth_file))
+        return AuthSource(kind="default", value=str(notebooklm_default_auth_file))
     raise BackendAuthError(
         "NotebookLM auth file not found.",
         error_code=-32002,

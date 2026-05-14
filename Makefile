@@ -7,6 +7,7 @@ bootstrap:
 lint:
 	uv run ruff check .
 	uv run ruff format --check .
+	uv run python scripts/check_arch_boundaries.py
 	uv run python scripts/check_no_branding.py
 
 format:

@@ -1,0 +1,37 @@
+header:
+  schema-version: "1.0.0"
+  last-updated: "2026-05-14"
+  last-reviewed: "2026-05-14"
+  url: "https://github.com/oaslananka/notebooklm-mcp-pro"
+
+project-lifecycle:
+  status: active
+  bug-fixes-only: false
+  core-maintainers:
+    - github: oaslananka
+
+security:
+  contacts:
+    - type: web
+      value: "https://github.com/oaslananka/notebooklm-mcp-pro/security/advisories/new"
+  policy: "https://github.com/oaslananka/notebooklm-mcp-pro/blob/main/SECURITY.md"
+
+repository:
+  url: "https://github.com/oaslananka/notebooklm-mcp-pro"
+  status: active
+  accepts-change-request: true
+  accepts-automated-change-request: true
+
+documentation:
+  security:
+    url: "https://github.com/oaslananka/notebooklm-mcp-pro/blob/main/docs/security.md"
+  threat-model:
+    url: "https://github.com/oaslananka/notebooklm-mcp-pro/blob/main/docs/THREAT_MODEL.md"
+  governance:
+    url: "https://github.com/oaslananka/notebooklm-mcp-pro/blob/main/GOVERNANCE.md"
+
+distribution-points:
+  - name: PyPI
+    url: "https://pypi.org/project/notebooklm-mcp-pro/"
+  - name: GHCR
+    url: "https://github.com/oaslananka/notebooklm-mcp-pro/pkgs/container/notebooklm-mcp-pro"

@@ -39,6 +39,9 @@ The 1.0 hardening pass adds or changes:
 - Full SHA pinning for GitHub Actions introduced by the hardening pass.
 - Digest pinning for Docker base images and checksum verification for the Gitleaks scanner binary.
 - Sigstore signing for new release assets.
+- GitHub build provenance attestations for release artifacts.
+- OSPS Baseline evidence mapping and OpenSSF Security Insights metadata.
+- Governance, maintainer, and threat-model documentation.
 - Manual release-signing workflow for existing release assets.
 - ClusterFuzzLite batch fuzzing with an Atheris target for settings validation.
 - Agent-readable architecture, quality, and debt documentation.
@@ -62,7 +65,7 @@ The 1.0 hardening pass adds or changes:
 | Fuzzing | Active | ClusterFuzzLite and deterministic Atheris smoke coverage are configured. |
 | License | Maximal | MIT license is present. |
 | Maintained | Time-gated | New repositories score low until there is more than 90 days of maintenance history. |
-| Packaging | Active | Release workflow publishes PyPI packages, GHCR images, GitHub releases, SBOMs, and Sigstore bundles. |
+| Packaging | Active | Release workflow publishes PyPI packages, GHCR images, GitHub releases, SBOMs, Sigstore bundles, and provenance attestations. |
 | Pinned-Dependencies | Maximal | GitHub Actions are SHA-pinned and Docker bases are digest-pinned. |
 | SAST | Maximal | CodeQL and Bandit are configured. |
 | Security-Policy | Maximal | Security policy is present and published. |
@@ -76,7 +79,7 @@ For a release to meet this repository's quality bar:
 
 1. Tag version matches `pyproject.toml`.
 2. CI, security, CodeQL, docs, and Scorecard workflows complete successfully.
-3. Wheel, sdist, SBOM, and Sigstore bundle assets are present on the GitHub
-   release.
+3. Wheel, sdist, SBOM, Sigstore bundle assets, and GitHub provenance
+   attestations are present for the release.
 4. PyPI install works for the tagged version.
 5. GHCR image pull works for the tagged version.

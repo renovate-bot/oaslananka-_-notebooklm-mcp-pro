@@ -28,6 +28,13 @@ The browser login writes a storage-state JSON file. By default, this project rea
 ~/.config/nlm-mcp/notebooklm_auth.json
 ```
 
+If that file is not present, the server also detects the NotebookLM CLI default
+profile:
+
+```text
+~/.notebooklm/profiles/default/storage_state.json
+```
+
 Override it with:
 
 ```bash

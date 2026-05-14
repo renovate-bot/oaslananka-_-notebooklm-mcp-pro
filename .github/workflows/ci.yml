@@ -71,6 +71,7 @@ jobs:
       - run: uv sync --extra dev --extra browser
       - run: uv run ruff check .
       - run: uv run ruff format --check .
+      - run: uv run python scripts/check_arch_boundaries.py
       - run: uv run python scripts/check_no_branding.py
 
   typecheck:

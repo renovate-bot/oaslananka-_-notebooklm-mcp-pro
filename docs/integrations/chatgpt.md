@@ -33,10 +33,13 @@ docker run --rm -p 8080:8080 \
 List my NotebookLM notebooks and summarize the first notebook's sources.
 ```
 
-The action should call `notebook.list`, `source.list`, and `fetch`.
+The action should call `notebook_list`, `source_list`, and `fetch`.
 
 ## Notes
 
+- OpenAPI URL paths keep canonical dotted names such as `/tools/notebook.list`;
+  generated operation IDs and MCP-visible tool names use underscores for strict
+  client compatibility.
 - Binary downloads return a local server path when running where the server can write files.
-- Long artifact generation should use `artifact.status` or `artifact.wait`.
+- Long artifact generation should use `artifact_status` or `artifact_wait`.
 - The `search` and `fetch` tools return the shape expected by ChatGPT knowledge connectors.

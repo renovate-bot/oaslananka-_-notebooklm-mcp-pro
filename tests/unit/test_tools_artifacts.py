@@ -185,34 +185,34 @@ def _server(tmp_path: Path, backend: FakeArtifactBackend | None = None) -> Any:
 async def test_generation_tools_submit_and_track_tasks(tmp_path: Path) -> None:
     async with Client(_server(tmp_path)) as client:
         audio = await client.call_tool(
-            "generate.audio_overview",
+            "generate_audio_overview",
             {
                 "notebook_id": "nb-1",
                 "audio_format": "debate",
                 "audio_length": "short",
             },
         )
-        video = await client.call_tool("generate.video_overview", {"notebook_id": "nb-1"})
-        cinematic = await client.call_tool("generate.cinematic_video", {"notebook_id": "nb-1"})
+        video = await client.call_tool("generate_video_overview", {"notebook_id": "nb-1"})
+        cinematic = await client.call_tool("generate_cinematic_video", {"notebook_id": "nb-1"})
         slides = await client.call_tool(
-            "generate.slide_deck",
+            "generate_slide_deck",
             {"notebook_id": "nb-1", "slide_format": "presenter_slides"},
         )
         infographic = await client.call_tool(
-            "generate.infographic",
+            "generate_infographic",
             {"notebook_id": "nb-1", "orientation": "square", "detail_level": "detailed"},
         )
         quiz = await client.call_tool(
-            "generate.quiz",
+            "generate_quiz",
             {"notebook_id": "nb-1", "quantity": "fewer", "difficulty": "hard"},
         )
-        cards = await client.call_tool("generate.flashcards", {"notebook_id": "nb-1"})
+        cards = await client.call_tool("generate_flashcards", {"notebook_id": "nb-1"})
         report = await client.call_tool(
-            "generate.report",
+            "generate_report",
             {"notebook_id": "nb-1", "report_format": "study_guide"},
         )
-        table = await client.call_tool("generate.data_table", {"notebook_id": "nb-1"})
-        mind_map = await client.call_tool("generate.mind_map", {"notebook_id": "nb-1"})
+        table = await client.call_tool("generate_data_table", {"notebook_id": "nb-1"})
+        mind_map = await client.call_tool("generate_mind_map", {"notebook_id": "nb-1"})
 
     assert audio.data["task_id"] == "audio-1"
     assert video.data["artifact_type"] == "video"
@@ -229,31 +229,31 @@ async def test_generation_tools_submit_and_track_tasks(tmp_path: Path) -> None:
 async def test_artifact_lifecycle_tools_and_resources(tmp_path: Path) -> None:
     backend = FakeArtifactBackend()
     async with Client(_server(tmp_path, backend)) as client:
-        await client.call_tool("generate.audio_overview", {"notebook_id": "nb-1"})
+        await client.call_tool("generate_audio_overview", {"notebook_id": "nb-1"})
         status = await client.call_tool(
-            "artifact.status",
+            "artifact_status",
             {"notebook_id": "nb-1", "task_id": "audio-1"},
         )
         waited = await client.call_tool(
-            "artifact.wait",
+            "artifact_wait",
             {"notebook_id": "nb-1", "task_id": "audio-1", "poll_interval_sec": 1},
         )
         listed = await client.call_tool(
-            "artifact.list",
+            "artifact_list",
             {"notebook_id": "nb-1", "artifact_type": "audio"},
         )
         downloaded = await client.call_tool(
-            "artifact.download",
+            "artifact_download",
             {
                 "notebook_id": "nb-1",
                 "artifact_type": "quiz",
                 "artifact_id": "quiz-1",
-                "output_path": "quiz.json",
+                "output_path": "quiz_json",
                 "output_format": "md",
             },
         )
         revised = await client.call_tool(
-            "artifact.revise_slide",
+            "artifact_revise_slide",
             {
                 "notebook_id": "nb-1",
                 "artifact_id": "slides-1",
@@ -262,11 +262,11 @@ async def test_artifact_lifecycle_tools_and_resources(tmp_path: Path) -> None:
             },
         )
         deleted = await client.call_tool(
-            "artifact.delete",
+            "artifact_delete",
             {"notebook_id": "nb-1", "artifact_id": "quiz-1", "confirm": True},
         )
         canceled = await client.call_tool(
-            "artifact.cancel",
+            "artifact_cancel",
             {"notebook_id": "nb-1", "task_id": "audio-1", "confirm": True},
         )
         artifact_resource = await client.read_resource("notebooklm://artifact/audio-1")
@@ -277,8 +277,8 @@ async def test_artifact_lifecycle_tools_and_resources(tmp_path: Path) -> None:
     assert status.data["status"]["status"] == "completed"
     assert waited.data["status"]["interval"] == 1.0
     assert listed.data["tracked_tasks"][0]["task_id"] == "audio-1"
-    assert downloaded.data["path"] == str(tmp_path / "artifacts" / "quiz.json")
-    assert backend.downloads[0][2] == str(tmp_path / "artifacts" / "quiz.json")
+    assert downloaded.data["path"] == str(tmp_path / "artifacts" / "quiz_json")
+    assert backend.downloads[0][2] == str(tmp_path / "artifacts" / "quiz_json")
     assert backend.downloads[0][4] == "markdown"
     assert revised.data["task_id"] == "revision-1"
     assert deleted.data["deleted"] is True
@@ -292,11 +292,11 @@ async def test_artifact_download_rejects_unsafe_paths(tmp_path: Path) -> None:
     async with Client(_server(tmp_path, absolute_backend)) as client:
         with pytest.raises(ToolError):
             await client.call_tool(
-                "artifact.download",
+                "artifact_download",
                 {
                     "notebook_id": "nb-1",
                     "artifact_type": "quiz",
-                    "output_path": str(tmp_path / "outside.json"),
+                    "output_path": str(tmp_path / "outside_json"),
                 },
             )
     assert absolute_backend.downloads == []
@@ -305,7 +305,7 @@ async def test_artifact_download_rejects_unsafe_paths(tmp_path: Path) -> None:
     async with Client(_server(tmp_path, traversal_backend)) as client:
         with pytest.raises(ToolError):
             await client.call_tool(
-                "artifact.download",
+                "artifact_download",
                 {
                     "notebook_id": "nb-1",
                     "artifact_type": "quiz",
@@ -319,16 +319,16 @@ async def test_research_language_and_prompts(tmp_path: Path) -> None:
     backend = FakeArtifactBackend()
     async with Client(_server(tmp_path, backend)) as client:
         web = await client.call_tool(
-            "research.web_start",
+            "research_web_start",
             {"notebook_id": "nb-1", "query": "climate", "mode": "deep"},
         )
         drive = await client.call_tool(
-            "research.drive_start",
+            "research_drive_start",
             {"notebook_id": "nb-1", "query": "budget"},
         )
-        status = await client.call_tool("research.status", {"notebook_id": "nb-1"})
+        status = await client.call_tool("research_status", {"notebook_id": "nb-1"})
         waited = await client.call_tool(
-            "research.wait",
+            "research_wait",
             {
                 "notebook_id": "nb-1",
                 "poll_interval_sec": 1,
@@ -336,11 +336,11 @@ async def test_research_language_and_prompts(tmp_path: Path) -> None:
                 "auto_import": True,
             },
         )
-        languages = await client.call_tool("language.list", {})
-        language = await client.call_tool("language.get", {})
+        languages = await client.call_tool("language_list", {})
+        language = await client.call_tool("language_get", {})
         with pytest.raises(ToolError, match="Confirmation required"):
-            await client.call_tool("language.set", {"language": "tr"})
-        changed = await client.call_tool("language.set", {"language": "tr", "confirm": True})
+            await client.call_tool("language_set", {"language": "tr"})
+        changed = await client.call_tool("language_set", {"language": "tr", "confirm": True})
         prompts = await client.list_prompts()
         study_prompt = await client.get_prompt(
             "study-pack",
@@ -352,11 +352,11 @@ async def test_research_language_and_prompts(tmp_path: Path) -> None:
         )
         meeting_prompt = await client.get_prompt(
             "meeting-to-podcast",
-            {"transcript_path": "meeting.txt", "style": "debate"},
+            {"transcript_path": "meeting_txt", "style": "debate"},
         )
         paper_prompt = await client.get_prompt(
             "paper-deep-dive",
-            {"pdf_path": "paper.pdf"},
+            {"pdf_path": "paper_pdf"},
         )
 
     assert web.data["result"]["mode"] == "deep"
@@ -378,8 +378,8 @@ async def test_research_language_and_prompts(tmp_path: Path) -> None:
         if token.startswith(("http://", "https://"))
     ]
     assert research_prompt_urls == ["https://example.com"]
-    assert "meeting.txt" in meeting_prompt.messages[0].content.text
-    assert "paper.pdf" in paper_prompt.messages[0].content.text
+    assert "meeting_txt" in meeting_prompt.messages[0].content.text
+    assert "paper_pdf" in paper_prompt.messages[0].content.text
 
 
 async def test_research_wait_does_not_import_failed_tasks(tmp_path: Path) -> None:
@@ -395,7 +395,7 @@ async def test_research_wait_does_not_import_failed_tasks(tmp_path: Path) -> Non
     backend = FailedResearchBackend()
     async with Client(_server(tmp_path, backend)) as client:
         waited = await client.call_tool(
-            "research.wait",
+            "research_wait",
             {
                 "notebook_id": "nb-1",
                 "task_id": "web-research-1",
@@ -411,7 +411,7 @@ async def test_research_wait_does_not_import_failed_tasks(tmp_path: Path) -> Non
 
 
 async def test_task_store_persists_records(tmp_path: Path) -> None:
-    first_store = TaskStore(tmp_path / "tasks.db")
+    first_store = TaskStore(tmp_path / "tasks_db")
     await first_store.upsert(
         task_id="task-1",
         notebook_id="nb-1",
@@ -419,7 +419,7 @@ async def test_task_store_persists_records(tmp_path: Path) -> None:
         status="pending",
         metadata={"a": 1},
     )
-    second_store = TaskStore(tmp_path / "tasks.db")
+    second_store = TaskStore(tmp_path / "tasks_db")
 
     record = await second_store.get("task-1")
     records = await second_store.list_for_notebook("nb-1")

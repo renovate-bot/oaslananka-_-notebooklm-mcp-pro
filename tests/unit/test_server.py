@@ -16,18 +16,19 @@ async def test_admin_tools_are_registered_with_annotations() -> None:
         tools = await client.list_tools()
 
     by_name = {tool.name: tool for tool in tools}
-    assert {"admin.health", "admin.version"}.issubset(by_name)
-    assert by_name["admin.health"].annotations is not None
-    assert by_name["admin.health"].annotations.readOnlyHint is True
-    assert by_name["admin.version"].annotations is not None
-    assert by_name["admin.version"].annotations.readOnlyHint is True
+    assert {"admin_health", "admin_version"}.issubset(by_name)
+    assert by_name["admin_health"].annotations is not None
+    assert by_name["admin_health"].annotations.readOnlyHint is True
+    assert by_name["admin_version"].annotations is not None
+    assert by_name["admin_version"].annotations.readOnlyHint is True
+    assert all("." not in name for name in by_name)
 
 
 async def test_admin_health_tool_reports_server_state() -> None:
     settings = Settings(transport=TransportMode.STDIO, auth_mode=AuthMode.NONE)
 
     async with Client(create_server(settings)) as client:
-        result = await client.call_tool("admin.health", {})
+        result = await client.call_tool("admin_health", {})
 
     assert result.data == {
         "status": "ok",
@@ -39,7 +40,7 @@ async def test_admin_health_tool_reports_server_state() -> None:
 
 async def test_admin_version_tool_reports_package_version() -> None:
     async with Client(create_server(Settings())) as client:
-        result = await client.call_tool("admin.version", {})
+        result = await client.call_tool("admin_version", {})
 
     assert result.data["name"] == "notebooklm-mcp-pro"
     assert result.data["version"] == __version__

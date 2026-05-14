@@ -24,5 +24,5 @@ Set bearer token authentication when the server uses `NLM_MCP_AUTH_MODE=token`.
 Verify with:
 
 ```text
-Run admin.version, then search NotebookLM records for "project".
+Run admin_version, then search NotebookLM records for "project".
 ```

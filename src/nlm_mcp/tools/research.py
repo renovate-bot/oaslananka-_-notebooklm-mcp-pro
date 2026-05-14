@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any
 from fastmcp import FastMCP
 
 from nlm_mcp.backend.exceptions import BackendTimeoutError
-from nlm_mcp.tools.common import run_tool, to_plain, tool_annotations
+from nlm_mcp.tools.common import run_tool, to_plain, tool_annotations, tool_public_name
 from nlm_mcp.tools.models import NotebookIdInput, ResearchStartInput, ResearchWaitInput
 
 if TYPE_CHECKING:
@@ -20,7 +20,7 @@ def register_research_tools(server: FastMCP, backend: NotebookLMBackend) -> None
     """Register NotebookLM research tools."""
 
     @server.tool(
-        name="research.web_start",
+        name=tool_public_name("research.web_start"),
         title="Start Web Research",
         annotations=tool_annotations(idempotent=False, open_world=True),
     )
@@ -47,7 +47,7 @@ def register_research_tools(server: FastMCP, backend: NotebookLMBackend) -> None
         )
 
     @server.tool(
-        name="research.drive_start",
+        name=tool_public_name("research.drive_start"),
         title="Start Drive Research",
         annotations=tool_annotations(idempotent=False),
     )
@@ -68,7 +68,7 @@ def register_research_tools(server: FastMCP, backend: NotebookLMBackend) -> None
         )
 
     @server.tool(
-        name="research.status",
+        name=tool_public_name("research.status"),
         title="Research Status",
         annotations=tool_annotations(read_only=True, idempotent=True),
     )
@@ -82,7 +82,7 @@ def register_research_tools(server: FastMCP, backend: NotebookLMBackend) -> None
         )
 
     @server.tool(
-        name="research.wait",
+        name=tool_public_name("research.wait"),
         title="Wait For Research",
         annotations=tool_annotations(read_only=True, idempotent=False),
     )

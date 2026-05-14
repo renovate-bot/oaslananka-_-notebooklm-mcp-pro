@@ -703,11 +703,61 @@ def test_resolve_auth_source_uses_notebooklm_default_when_project_default_missin
     monkeypatch: MonkeyPatch,
 ) -> None:
     default_path = tmp_path / "missing-default.json"
+    cli_default_path = tmp_path / "missing-cli-default.json"
     monkeypatch.setattr(client_module, "DEFAULT_NOTEBOOKLM_AUTH_FILE", default_path)
+    monkeypatch.setattr(client_module, "_notebooklm_default_auth_file", lambda: cli_default_path)
 
     source = resolve_auth_source(Settings(notebooklm_auth_file=default_path))
 
-    assert source == AuthSource(kind="default", value="")
+    assert source == AuthSource(kind="default", value=str(cli_default_path))
+
+
+def test_resolve_auth_source_uses_notebooklm_cli_default_when_present(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    default_path = tmp_path / "missing-project-default.json"
+    cli_default_path = tmp_path / "profiles" / "default" / "storage_state.json"
+    cli_default_path.parent.mkdir(parents=True)
+    cli_default_path.write_text('{"cookies": []}', encoding="utf-8")
+    monkeypatch.setattr(client_module, "DEFAULT_NOTEBOOKLM_AUTH_FILE", default_path)
+    monkeypatch.setattr(client_module, "_notebooklm_default_auth_file", lambda: cli_default_path)
+
+    source = resolve_auth_source(Settings(notebooklm_auth_file=default_path))
+
+    assert source == AuthSource(kind="file", value=str(cli_default_path))
+
+
+def test_resolve_auth_source_honors_notebooklm_profile_env(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    default_path = tmp_path / "missing-project-default.json"
+    profile_storage = tmp_path / "notebooklm-home" / "profiles" / "work" / "storage_state.json"
+    profile_storage.parent.mkdir(parents=True)
+    profile_storage.write_text('{"cookies": []}', encoding="utf-8")
+    monkeypatch.setattr(client_module, "DEFAULT_NOTEBOOKLM_AUTH_FILE", default_path)
+    monkeypatch.setenv("NOTEBOOKLM_HOME", str(tmp_path / "notebooklm-home"))
+    monkeypatch.setenv("NOTEBOOKLM_PROFILE", "work")
+
+    source = resolve_auth_source(Settings(notebooklm_auth_file=default_path))
+
+    assert source == AuthSource(kind="file", value=str(profile_storage))
+
+
+def test_resolve_auth_source_uses_default_resolution_for_missing_profile_env_file(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    default_path = tmp_path / "missing-project-default.json"
+    profile_storage = tmp_path / "notebooklm-home" / "profiles" / "work" / "storage_state.json"
+    monkeypatch.setattr(client_module, "DEFAULT_NOTEBOOKLM_AUTH_FILE", default_path)
+    monkeypatch.setenv("NOTEBOOKLM_HOME", str(tmp_path / "notebooklm-home"))
+    monkeypatch.setenv("NOTEBOOKLM_PROFILE", "work")
+
+    source = resolve_auth_source(Settings(notebooklm_auth_file=default_path))
+
+    assert source == AuthSource(kind="default", value=str(profile_storage))
 
 
 def test_resolve_auth_source_rejects_missing_file(tmp_path: Path) -> None:

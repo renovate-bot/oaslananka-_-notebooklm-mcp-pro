@@ -22,36 +22,36 @@ from nlm_mcp.tools.common import (
 )
 
 EXPECTED_CORE_TOOLS = {
-    "admin.health",
-    "admin.version",
-    "notebook.list",
-    "notebook.create",
-    "notebook.get",
-    "notebook.rename",
-    "notebook.delete",
-    "notebook.share_public",
-    "notebook.share_invite",
-    "notebook.share_status",
-    "source.add_url",
-    "source.add_youtube",
-    "source.add_file",
-    "source.add_gdrive",
-    "source.add_text",
-    "source.list",
-    "source.get",
-    "source.get_fulltext",
-    "source.refresh",
-    "source.wait",
-    "source.remove",
-    "chat.ask",
-    "chat.query",
-    "chat.stream_query",
-    "chat.conversation_start",
-    "chat.continue",
-    "chat.history",
-    "chat.save_note",
-    "chat.list_notes",
-    "chat.save_to_notes",
+    "admin_health",
+    "admin_version",
+    "notebook_list",
+    "notebook_create",
+    "notebook_get",
+    "notebook_rename",
+    "notebook_delete",
+    "notebook_share_public",
+    "notebook_share_invite",
+    "notebook_share_status",
+    "source_add_url",
+    "source_add_youtube",
+    "source_add_file",
+    "source_add_gdrive",
+    "source_add_text",
+    "source_list",
+    "source_get",
+    "source_get_fulltext",
+    "source_refresh",
+    "source_wait",
+    "source_remove",
+    "chat_ask",
+    "chat_query",
+    "chat_stream_query",
+    "chat_conversation_start",
+    "chat_continue",
+    "chat_history",
+    "chat_save_note",
+    "chat_list_notes",
+    "chat_save_to_notes",
     "search",
     "fetch",
 }
@@ -258,27 +258,27 @@ async def test_core_tools_are_registered_with_annotations() -> None:
     assert by_name["search"].annotations.readOnlyHint is True
     assert by_name["fetch"].annotations is not None
     assert by_name["fetch"].annotations.readOnlyHint is True
-    assert by_name["notebook.delete"].annotations is not None
-    assert by_name["notebook.delete"].annotations.destructiveHint is True
-    assert by_name["source.remove"].annotations is not None
-    assert by_name["source.remove"].annotations.destructiveHint is True
-    assert by_name["notebook.share_invite"].annotations is not None
-    assert by_name["notebook.share_invite"].annotations.destructiveHint is True
+    assert by_name["notebook_delete"].annotations is not None
+    assert by_name["notebook_delete"].annotations.destructiveHint is True
+    assert by_name["source_remove"].annotations is not None
+    assert by_name["source_remove"].annotations.destructiveHint is True
+    assert by_name["notebook_share_invite"].annotations is not None
+    assert by_name["notebook_share_invite"].annotations.destructiveHint is True
 
 
 async def test_notebook_source_and_chat_tools_use_backend() -> None:
     async with Client(_fake_server()) as client:
-        notebooks = await client.call_tool("notebook.list", {})
+        notebooks = await client.call_tool("notebook_list", {})
         renamed = await client.call_tool(
-            "notebook.rename",
+            "notebook_rename",
             {"notebook_id": "nb-1", "title": "Renamed"},
         )
         source = await client.call_tool(
-            "source.add_text",
+            "source_add_text",
             {"notebook_id": "nb-1", "title": "Notes", "content": "Body"},
         )
         answer = await client.call_tool(
-            "chat.ask",
+            "chat_ask",
             {"notebook_id": "nb-1", "question": "What changed?"},
         )
 
@@ -290,14 +290,14 @@ async def test_notebook_source_and_chat_tools_use_backend() -> None:
 
 async def test_remaining_notebook_tools_use_backend() -> None:
     async with Client(_fake_server()) as client:
-        created = await client.call_tool("notebook.create", {"title": "New"})
-        fetched = await client.call_tool("notebook.get", {"notebook_id": "nb-1"})
+        created = await client.call_tool("notebook_create", {"title": "New"})
+        fetched = await client.call_tool("notebook_get", {"notebook_id": "nb-1"})
         public = await client.call_tool(
-            "notebook.share_public",
+            "notebook_share_public",
             {"notebook_id": "nb-1", "public": True, "confirm": True},
         )
         invited = await client.call_tool(
-            "notebook.share_invite",
+            "notebook_share_invite",
             {
                 "notebook_id": "nb-1",
                 "email": "reader@example.test",
@@ -307,7 +307,7 @@ async def test_remaining_notebook_tools_use_backend() -> None:
                 "confirm": True,
             },
         )
-        status = await client.call_tool("notebook.share_status", {"notebook_id": "nb-1"})
+        status = await client.call_tool("notebook_share_status", {"notebook_id": "nb-1"})
 
     assert created.data["result"] == {"id": "nb-new", "title": "New"}
     assert fetched.data["result"]["id"] == "nb-1"
@@ -319,36 +319,36 @@ async def test_remaining_notebook_tools_use_backend() -> None:
 async def test_remaining_source_tools_use_backend() -> None:
     async with Client(_fake_server()) as client:
         url = await client.call_tool(
-            "source.add_url",
+            "source_add_url",
             {"notebook_id": "nb-1", "url": "https://example.com/article", "wait": True},
         )
         youtube = await client.call_tool(
-            "source.add_youtube",
+            "source_add_youtube",
             {"notebook_id": "nb-1", "url": "https://youtube.com/watch?v=abc123"},
         )
         file_source = await client.call_tool(
-            "source.add_file",
-            {"notebook_id": "nb-1", "file_path": "source.pdf", "mime_type": "application/pdf"},
+            "source_add_file",
+            {"notebook_id": "nb-1", "file_path": "source_pdf", "mime_type": "application/pdf"},
         )
         drive = await client.call_tool(
-            "source.add_gdrive",
+            "source_add_gdrive",
             {"notebook_id": "nb-1", "file_id": "drive-1", "title": "Drive Doc"},
         )
-        listed = await client.call_tool("source.list", {"notebook_id": "nb-1"})
+        listed = await client.call_tool("source_list", {"notebook_id": "nb-1"})
         source = await client.call_tool(
-            "source.get",
+            "source_get",
             {"notebook_id": "nb-1", "source_id": "src-1"},
         )
         fulltext = await client.call_tool(
-            "source.get_fulltext",
+            "source_get_fulltext",
             {"notebook_id": "nb-1", "source_id": "src-1"},
         )
         refreshed = await client.call_tool(
-            "source.refresh",
+            "source_refresh",
             {"notebook_id": "nb-1", "source_id": "src-1"},
         )
         waited = await client.call_tool(
-            "source.wait",
+            "source_wait",
             {"notebook_id": "nb-1", "source_id": "src-1", "poll_interval_sec": 1},
         )
 
@@ -367,35 +367,35 @@ async def test_remaining_source_tools_use_backend() -> None:
 async def test_remaining_chat_tools_use_backend() -> None:
     async with Client(_fake_server()) as client:
         started = await client.call_tool(
-            "chat.conversation_start",
+            "chat_conversation_start",
             {"notebook_id": "nb-1", "name": "Study", "initial_question": "Start?"},
         )
         continued = await client.call_tool(
-            "chat.continue",
+            "chat_continue",
             {"notebook_id": "nb-1", "question": "Next?", "conversation_id": "conv-1"},
         )
         history = await client.call_tool(
-            "chat.history",
+            "chat_history",
             {"notebook_id": "nb-1", "limit": CHAT_HISTORY_LIMIT, "conversation_id": "conv-1"},
         )
         note = await client.call_tool(
-            "chat.save_to_notes",
+            "chat_save_to_notes",
             {"notebook_id": "nb-1", "title": "Saved", "content": "Answer"},
         )
         alias_answer = await client.call_tool(
-            "chat.query",
+            "chat_query",
             {"notebook_id": "nb-1", "question": "Alias?"},
         )
         stream_answer = await client.call_tool(
-            "chat.stream_query",
+            "chat_stream_query",
             {"notebook_id": "nb-1", "question": "Stream?"},
         )
         alias_note = await client.call_tool(
-            "chat.save_note",
+            "chat_save_note",
             {"notebook_id": "nb-1", "title": "Saved", "content": "Answer"},
         )
         notes = await client.call_tool(
-            "chat.list_notes",
+            "chat_list_notes",
             {"notebook_id": "nb-1", "limit": CHAT_HISTORY_LIMIT},
         )
 
@@ -413,33 +413,33 @@ async def test_remaining_chat_tools_use_backend() -> None:
 async def test_destructive_tools_require_confirmation() -> None:
     async with Client(_fake_server()) as client:
         with pytest.raises(ToolError, match="Confirmation required"):
-            await client.call_tool("notebook.delete", {"notebook_id": "nb-1"})
+            await client.call_tool("notebook_delete", {"notebook_id": "nb-1"})
         with pytest.raises(ToolError, match="Confirmation required"):
             await client.call_tool(
-                "notebook.share_public",
+                "notebook_share_public",
                 {"notebook_id": "nb-1", "public": True},
             )
         with pytest.raises(ToolError, match="Confirmation required"):
             await client.call_tool(
-                "notebook.share_invite",
+                "notebook_share_invite",
                 {"notebook_id": "nb-1", "email": "reader@example.test"},
             )
         with pytest.raises(ToolError, match="email"):
             await client.call_tool(
-                "notebook.share_invite",
+                "notebook_share_invite",
                 {"notebook_id": "nb-1", "email": "not-an-email", "confirm": True},
             )
         deleted = await client.call_tool(
-            "notebook.delete",
+            "notebook_delete",
             {"notebook_id": "nb-1", "confirm": True},
         )
         with pytest.raises(ToolError, match="Confirmation required"):
             await client.call_tool(
-                "source.remove",
+                "source_remove",
                 {"notebook_id": "nb-1", "source_id": "src-1"},
             )
         removed = await client.call_tool(
-            "source.remove",
+            "source_remove",
             {"notebook_id": "nb-1", "source_id": "src-1", "confirm": True},
         )
 
@@ -527,11 +527,11 @@ async def test_common_helpers_cover_conversion_and_error_paths() -> None:
     assert stable_title({"display_name": "Display"}) == "Display"
     assert stable_title({"other": "value"}, default="Default") == "Default"
     assert args_hash({"a": 1})
-    assert await run_tool("tool.ok", {}, ok_tool) == {"ok": True}
+    assert await run_tool("tool_ok", {}, ok_tool) == {"ok": True}
     with pytest.raises(ToolError, match="Invalid input"):
-        await run_tool("tool.backend_error", {}, backend_error)
+        await run_tool("tool_backend_error", {}, backend_error)
     with pytest.raises(ToolError, match="NotebookLM tool execution failed"):
-        await run_tool("tool.unexpected_error", {}, unexpected_error)
+        await run_tool("tool_unexpected_error", {}, unexpected_error)
     with pytest.raises(BackendValidationError):
         require_confirmation(False, "testing")
     require_confirmation(True, "testing")

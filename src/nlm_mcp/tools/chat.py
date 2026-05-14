@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 from fastmcp import FastMCP
 
-from nlm_mcp.tools.common import run_tool, to_plain, tool_annotations
+from nlm_mcp.tools.common import run_tool, to_plain, tool_annotations, tool_public_name
 from nlm_mcp.tools.models import (
     ChatAskInput,
     ChatHistoryInput,
@@ -24,7 +24,7 @@ def register_chat_tools(server: FastMCP, backend: NotebookLMBackend) -> None:
     """Register NotebookLM chat tools."""
 
     @server.tool(
-        name="chat.ask",
+        name=tool_public_name("chat.ask"),
         title="Ask Notebook",
         annotations=tool_annotations(idempotent=False),
     )
@@ -52,7 +52,7 @@ def register_chat_tools(server: FastMCP, backend: NotebookLMBackend) -> None:
         )
 
     @server.tool(
-        name="chat.query",
+        name=tool_public_name("chat.query"),
         title="Query Notebook",
         annotations=tool_annotations(idempotent=False),
     )
@@ -61,7 +61,7 @@ def register_chat_tools(server: FastMCP, backend: NotebookLMBackend) -> None:
         question: str,
         source_ids: list[str] | None = None,
     ) -> dict[str, Any]:
-        """Alias for `chat.ask` used by OpenAPI clients."""
+        """Alias for `chat_ask` used by OpenAPI clients."""
         payload = ChatAskInput(
             notebook_id=notebook_id,
             question=question,
@@ -80,7 +80,7 @@ def register_chat_tools(server: FastMCP, backend: NotebookLMBackend) -> None:
         )
 
     @server.tool(
-        name="chat.stream_query",
+        name=tool_public_name("chat.stream_query"),
         title="Stream Query Notebook",
         annotations=tool_annotations(idempotent=False),
     )
@@ -108,7 +108,7 @@ def register_chat_tools(server: FastMCP, backend: NotebookLMBackend) -> None:
         )
 
     @server.tool(
-        name="chat.conversation_start",
+        name=tool_public_name("chat.conversation_start"),
         title="Start Conversation",
         annotations=tool_annotations(idempotent=False),
     )
@@ -130,7 +130,7 @@ def register_chat_tools(server: FastMCP, backend: NotebookLMBackend) -> None:
         )
 
     @server.tool(
-        name="chat.continue",
+        name=tool_public_name("chat.continue"),
         title="Continue Conversation",
         annotations=tool_annotations(idempotent=False),
     )
@@ -161,7 +161,7 @@ def register_chat_tools(server: FastMCP, backend: NotebookLMBackend) -> None:
         )
 
     @server.tool(
-        name="chat.history",
+        name=tool_public_name("chat.history"),
         title="Chat History",
         annotations=tool_annotations(read_only=True, idempotent=True),
     )
@@ -183,7 +183,7 @@ def register_chat_tools(server: FastMCP, backend: NotebookLMBackend) -> None:
         )
 
     @server.tool(
-        name="chat.save_to_notes",
+        name=tool_public_name("chat.save_to_notes"),
         title="Save Chat Answer To Notes",
         annotations=tool_annotations(idempotent=False),
     )
@@ -199,7 +199,7 @@ def register_chat_tools(server: FastMCP, backend: NotebookLMBackend) -> None:
         )
 
     @server.tool(
-        name="chat.save_note",
+        name=tool_public_name("chat.save_note"),
         title="Save Notebook Note",
         annotations=tool_annotations(idempotent=False),
     )
@@ -215,7 +215,7 @@ def register_chat_tools(server: FastMCP, backend: NotebookLMBackend) -> None:
         )
 
     @server.tool(
-        name="chat.list_notes",
+        name=tool_public_name("chat.list_notes"),
         title="List Notebook Notes",
         annotations=tool_annotations(read_only=True, idempotent=True),
     )

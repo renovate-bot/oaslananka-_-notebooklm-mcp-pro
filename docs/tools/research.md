@@ -1,24 +1,24 @@
 # Research Tools
 
-## research.web_start
+## research_web_start
 
 Starts web research with NotebookLM.
 
 Parameters: `notebook_id`, `query`, `mode`.
 
-## research.drive_start
+## research_drive_start
 
 Starts Drive research.
 
 Parameters: `notebook_id`, `query`.
 
-## research.status
+## research_status
 
 Polls the latest research task status for a notebook.
 
 Parameters: `notebook_id`.
 
-## research.wait
+## research_wait
 
 Waits for a research task to finish and can import discovered sources.
 

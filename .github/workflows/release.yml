@@ -69,6 +69,7 @@ jobs:
       contents: write
       packages: write
       id-token: write
+      attestations: write
     steps:
       - name: Prepare self-hosted workspace
         shell: bash
@@ -115,6 +116,12 @@ jobs:
             dist/*
             sbom.json
           release-signing-artifacts: false
+      - name: Generate build provenance attestations
+        uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3
+        with:
+          subject-path: |
+            dist/*
+            sbom.json
       - name: Set up Docker Buildx
         run: |
           BUILDER="nlm-builder-${GITHUB_RUN_ID}"
@@ -129,6 +136,8 @@ jobs:
           IMAGE="ghcr.io/oaslananka/notebooklm-mcp-pro"
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
           docker buildx build --push -f deploy/Dockerfile \
+            --provenance=true \
+            --sbom=true \
             -t "${IMAGE}:${VERSION}" \
             -t "${IMAGE}:${MINOR}" \
             -t "${IMAGE}:${MAJOR}" \

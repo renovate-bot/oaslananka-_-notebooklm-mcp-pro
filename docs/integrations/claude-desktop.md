@@ -59,7 +59,7 @@ Edit the desktop configuration file:
 Restart the desktop app and ask:
 
 ```text
-Run admin.health and list my NotebookLM notebooks.
+Run admin_health and list my NotebookLM notebooks.
 ```
 
 ## Common issues

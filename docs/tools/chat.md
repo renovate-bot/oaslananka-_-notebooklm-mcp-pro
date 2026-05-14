@@ -1,48 +1,48 @@
 # Chat Tools
 
-## chat.ask
+## chat_ask
 
 Asks a one-shot question against a notebook.
 
 Parameters: `notebook_id`, `question`, `source_ids`.
 
-## chat.query
+## chat_query
 
-Alias for `chat.ask` exposed for OpenAPI clients.
+Alias for `chat_ask` exposed for OpenAPI clients.
 
-## chat.stream_query
+## chat_stream_query
 
 Runs a query through the same backend and returns the completed response. It is registered separately for clients that expect a stream-oriented name.
 
-## chat.conversation_start
+## chat_conversation_start
 
 Starts or identifies a conversation.
 
 Parameters: `notebook_id`, `name`, `initial_question`.
 
-## chat.continue
+## chat_continue
 
 Continues a conversation.
 
 Parameters: `notebook_id`, `question`, `conversation_id`, `source_ids`.
 
-## chat.history
+## chat_history
 
 Gets conversation history.
 
 Parameters: `notebook_id`, `limit`, `conversation_id`.
 
-## chat.save_to_notes
+## chat_save_to_notes
 
 Saves content as a NotebookLM note.
 
 Parameters: `notebook_id`, `title`, `content`.
 
-## chat.save_note
+## chat_save_note
 
-Alias for `chat.save_to_notes`.
+Alias for `chat_save_to_notes`.
 
-## chat.list_notes
+## chat_list_notes
 
 Lists saved notes.
 

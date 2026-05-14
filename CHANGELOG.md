@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-05-14
+
+### Added
+
+- OpenSSF Security Insights metadata for repository security posture discovery.
+- OSPS Baseline evidence mapping for release, security, governance, and CI controls.
+- Governance and maintainer policy documents with sensitive-access review expectations.
+- STRIDE-style threat model covering local stdio, Streamable HTTP, OAuth, NotebookLM auth, artifacts, and CI/CD.
+- Architecture boundary lint script wired into CI.
+
+### Changed
+
+- MCP-visible tool names now use underscore-safe names such as `admin_health` and `notebook_list` so VS Code and other strict clients do not reject the server's tools.
+- Self-hosted runners are preserved for CI because hosted-runner billing is constrained, with the runner policy documented in governance.
+- Documentation and generated tool catalog now call out canonical OpenAPI names and MCP-safe names separately.
+
+### Fixed
+
+- Removed VS Code warnings that reported dotted tool names as invalid.
+- Documented that `notebooklm-py` is the package name while the installed login command is `notebooklm`, with `python -m notebooklm` as the PATH-safe fallback.
+
 ## [1.0.1] - 2026-05-14
 
 ### Added

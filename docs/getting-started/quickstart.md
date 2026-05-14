@@ -48,4 +48,4 @@ Ask your MCP client:
 List my NotebookLM notebooks, then fetch the sources in the first notebook.
 ```
 
-The expected tool sequence is `notebook.list`, `source.list`, and optionally `fetch`.
+The expected tool sequence is `notebook_list`, `source_list`, and optionally `fetch`.

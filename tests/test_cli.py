@@ -40,6 +40,18 @@ def test_cli_doctor_reports_bootstrap_environment() -> None:
     assert payload["version"] == __version__
     assert payload["transport"] == expected.transport.value
     assert payload["auth_mode"] == expected.auth_mode.value
+    assert payload["notebooklm_auth"]["kind"] in {"default", "env_json", "file"}
+
+
+def test_cli_doctor_reports_missing_custom_auth_file(monkeypatch: MonkeyPatch) -> None:
+    monkeypatch.setenv("NLM_MCP_NOTEBOOKLM_AUTH_FILE", "missing-custom-auth.json")
+
+    result = CliRunner().invoke(app, ["doctor"])
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload["notebooklm_auth"]["kind"] == "missing"
+    assert "missing-custom-auth.json" in payload["notebooklm_auth"]["value"]
 
 
 def test_cli_transport_commands_are_present() -> None:
@@ -58,7 +70,9 @@ def test_cli_login_prints_module_command_with_storage_path() -> None:
     result = CliRunner().invoke(app, ["login"])
 
     assert result.exit_code == 0
+    assert "notebooklm login --storage" in result.stdout
     assert "python -m notebooklm login --storage" in result.stdout
+    assert "uvx --from notebooklm-py notebooklm login --storage" in result.stdout
     assert '--storage "' in result.stdout
     assert "notebooklm_auth.json" in result.stdout
 
@@ -70,6 +84,7 @@ def test_cli_login_ignores_incomplete_http_auth_environment(monkeypatch: MonkeyP
     result = CliRunner().invoke(app, ["login"])
 
     assert result.exit_code == 0
+    assert "notebooklm login --storage" in result.stdout
     assert "python -m notebooklm login --storage" in result.stdout
 
 

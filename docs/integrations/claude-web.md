@@ -15,7 +15,7 @@ Claude.ai supports remote MCP servers over Streamable HTTP. Use this mode when t
 3. Add an MCP server.
 4. Enter `https://your-server.example.com/mcp`.
 5. Choose bearer token or OAuth, matching the server configuration.
-6. Save and test with `admin.health`.
+6. Save and test with `admin_health`.
 
 ## Railway smoke test
 

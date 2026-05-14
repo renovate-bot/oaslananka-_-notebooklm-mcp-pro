@@ -1,19 +1,19 @@
 # Admin Tools
 
-## admin.health
+## admin_health
 
 Returns local server health:
 
 ```json
 {
   "status": "ok",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "transport": "http",
   "auth_mode": "token"
 }
 ```
 
-## admin.version
+## admin_version
 
 Returns package, Python, and FastMCP versions.
 

@@ -8,7 +8,13 @@ from fastmcp import FastMCP
 from notebooklm.cli.language import SUPPORTED_LANGUAGES
 
 from nlm_mcp.backend.exceptions import BackendValidationError
-from nlm_mcp.tools.common import require_confirmation, run_tool, to_plain, tool_annotations
+from nlm_mcp.tools.common import (
+    require_confirmation,
+    run_tool,
+    to_plain,
+    tool_annotations,
+    tool_public_name,
+)
 from nlm_mcp.tools.models import LanguageSetInput, NotebookListInput
 
 if TYPE_CHECKING:
@@ -19,7 +25,7 @@ def register_language_tools(server: FastMCP, backend: NotebookLMBackend) -> None
     """Register NotebookLM language tools."""
 
     @server.tool(
-        name="language.list",
+        name=tool_public_name("language.list"),
         title="List Languages",
         annotations=tool_annotations(read_only=True, idempotent=True),
     )
@@ -33,7 +39,7 @@ def register_language_tools(server: FastMCP, backend: NotebookLMBackend) -> None
         )
 
     @server.tool(
-        name="language.get",
+        name=tool_public_name("language.get"),
         title="Get Language",
         annotations=tool_annotations(read_only=True, idempotent=True),
     )
@@ -47,7 +53,7 @@ def register_language_tools(server: FastMCP, backend: NotebookLMBackend) -> None
         )
 
     @server.tool(
-        name="language.set",
+        name=tool_public_name("language.set"),
         title="Set Language",
         annotations=tool_annotations(destructive=True, idempotent=True),
     )

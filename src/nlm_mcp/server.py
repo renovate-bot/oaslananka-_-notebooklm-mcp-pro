@@ -60,7 +60,7 @@ def create_server(
         name="notebooklm_mcp",
         instructions=(
             "Programmatic MCP access to Google NotebookLM. "
-            "Use admin.health first to verify server readiness."
+            "Use admin_health first to verify server readiness."
         ),
         version=__version__,
         strict_input_validation=True,

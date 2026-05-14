@@ -16,6 +16,7 @@ from nlm_mcp.tools.common import (
     stable_id,
     to_plain,
     tool_annotations,
+    tool_public_name,
 )
 from nlm_mcp.tools.models import (
     ArtifactCancelInput,
@@ -54,7 +55,7 @@ def register_artifact_tools(  # noqa: PLR0915
     store = task_store or TaskStore.from_settings(settings)
 
     @server.tool(
-        name="generate.audio_overview",
+        name=tool_public_name("generate.audio_overview"),
         title="Generate Audio Overview",
         annotations=tool_annotations(idempotent=False),
     )
@@ -96,7 +97,7 @@ def register_artifact_tools(  # noqa: PLR0915
         )
 
     @server.tool(
-        name="generate.video_overview",
+        name=tool_public_name("generate.video_overview"),
         title="Generate Video Overview",
         annotations=tool_annotations(idempotent=False),
     )
@@ -138,7 +139,7 @@ def register_artifact_tools(  # noqa: PLR0915
         )
 
     @server.tool(
-        name="generate.cinematic_video",
+        name=tool_public_name("generate.cinematic_video"),
         title="Generate Cinematic Video",
         annotations=tool_annotations(idempotent=False),
     )
@@ -172,7 +173,7 @@ def register_artifact_tools(  # noqa: PLR0915
         )
 
     @server.tool(
-        name="generate.slide_deck",
+        name=tool_public_name("generate.slide_deck"),
         title="Generate Slide Deck",
         annotations=tool_annotations(idempotent=False),
     )
@@ -214,7 +215,7 @@ def register_artifact_tools(  # noqa: PLR0915
         )
 
     @server.tool(
-        name="generate.infographic",
+        name=tool_public_name("generate.infographic"),
         title="Generate Infographic",
         annotations=tool_annotations(idempotent=False),
     )
@@ -256,7 +257,7 @@ def register_artifact_tools(  # noqa: PLR0915
         )
 
     @server.tool(
-        name="generate.quiz",
+        name=tool_public_name("generate.quiz"),
         title="Generate Quiz",
         annotations=tool_annotations(idempotent=False),
     )
@@ -295,7 +296,7 @@ def register_artifact_tools(  # noqa: PLR0915
         )
 
     @server.tool(
-        name="generate.flashcards",
+        name=tool_public_name("generate.flashcards"),
         title="Generate Flashcards",
         annotations=tool_annotations(idempotent=False),
     )
@@ -334,7 +335,7 @@ def register_artifact_tools(  # noqa: PLR0915
         )
 
     @server.tool(
-        name="generate.report",
+        name=tool_public_name("generate.report"),
         title="Generate Report",
         annotations=tool_annotations(idempotent=False),
     )
@@ -378,7 +379,7 @@ def register_artifact_tools(  # noqa: PLR0915
         )
 
     @server.tool(
-        name="generate.data_table",
+        name=tool_public_name("generate.data_table"),
         title="Generate Data Table",
         annotations=tool_annotations(idempotent=False),
     )
@@ -412,7 +413,7 @@ def register_artifact_tools(  # noqa: PLR0915
         )
 
     @server.tool(
-        name="generate.mind_map",
+        name=tool_public_name("generate.mind_map"),
         title="Generate Mind Map",
         annotations=tool_annotations(idempotent=False),
     )
@@ -440,7 +441,7 @@ def register_artifact_tools(  # noqa: PLR0915
         )
 
     @server.tool(
-        name="artifact.status",
+        name=tool_public_name("artifact.status"),
         title="Artifact Status",
         annotations=tool_annotations(read_only=True, idempotent=True),
     )
@@ -454,7 +455,7 @@ def register_artifact_tools(  # noqa: PLR0915
         )
 
     @server.tool(
-        name="artifact.wait",
+        name=tool_public_name("artifact.wait"),
         title="Wait For Artifact",
         annotations=tool_annotations(read_only=True, idempotent=False),
     )
@@ -478,7 +479,7 @@ def register_artifact_tools(  # noqa: PLR0915
         )
 
     @server.tool(
-        name="artifact.list",
+        name=tool_public_name("artifact.list"),
         title="List Artifacts",
         annotations=tool_annotations(read_only=True, idempotent=True),
     )
@@ -497,7 +498,7 @@ def register_artifact_tools(  # noqa: PLR0915
         )
 
     @server.tool(
-        name="artifact.download",
+        name=tool_public_name("artifact.download"),
         title="Download Artifact",
         annotations=tool_annotations(read_only=True, idempotent=True),
     )
@@ -526,7 +527,7 @@ def register_artifact_tools(  # noqa: PLR0915
         )
 
     @server.tool(
-        name="artifact.delete",
+        name=tool_public_name("artifact.delete"),
         title="Delete Artifact",
         annotations=tool_annotations(destructive=True, idempotent=False),
     )
@@ -554,7 +555,7 @@ def register_artifact_tools(  # noqa: PLR0915
         return await run_tool("artifact.delete", payload, operation)
 
     @server.tool(
-        name="artifact.cancel",
+        name=tool_public_name("artifact.cancel"),
         title="Cancel Artifact Task",
         annotations=tool_annotations(destructive=True, idempotent=False),
     )
@@ -582,7 +583,7 @@ def register_artifact_tools(  # noqa: PLR0915
         return await run_tool("artifact.cancel", payload, operation)
 
     @server.tool(
-        name="artifact.revise_slide",
+        name=tool_public_name("artifact.revise_slide"),
         title="Revise Slide",
         annotations=tool_annotations(idempotent=False),
     )

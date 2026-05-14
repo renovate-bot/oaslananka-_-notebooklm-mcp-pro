@@ -13,6 +13,15 @@ The default auth file path is:
 ~/.config/nlm-mcp/notebooklm_auth.json
 ```
 
+If you run `notebooklm login` without `--storage`, the NotebookLM CLI writes:
+
+```text
+~/.notebooklm/profiles/default/storage_state.json
+```
+
+The server detects that default profile when the project-specific auth file does
+not exist.
+
 Run this once on a workstation with a browser:
 
 ```bash

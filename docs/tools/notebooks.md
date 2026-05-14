@@ -1,6 +1,6 @@
 # Notebook Tools
 
-## notebook.list
+## notebook_list
 
 Lists all notebooks visible to the configured NotebookLM session.
 
@@ -18,7 +18,7 @@ Example:
 List all my notebooks.
 ```
 
-## notebook.create
+## notebook_create
 
 Creates a notebook.
 
@@ -28,37 +28,37 @@ Parameters:
 |---|---|---|
 | `title` | string | yes |
 
-## notebook.get
+## notebook_get
 
 Gets metadata for one notebook.
 
 Parameters: `notebook_id`.
 
-## notebook.rename
+## notebook_rename
 
 Renames one notebook.
 
 Parameters: `notebook_id`, `title`.
 
-## notebook.delete
+## notebook_delete
 
 Deletes a notebook after explicit confirmation.
 
 Parameters: `notebook_id`, `confirm=true`.
 
-## notebook.share_public
+## notebook_share_public
 
 Enables or disables public sharing.
 
 Parameters: `notebook_id`, `public`, `confirm`.
 
-## notebook.share_invite
+## notebook_share_invite
 
 Invites a collaborator.
 
 Parameters: `notebook_id`, `email`, `role`, `notify`, `welcome_message`, `confirm`.
 
-## notebook.share_status
+## notebook_share_status
 
 Returns sharing settings.
 

@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.5] - 2026-05-14
+
+### Fixed
+
+- Suppressed chained backend exception context when converting tool and resource failures to MCP-safe `ToolError` and `ResourceError` responses, preventing upstream auth redirect URLs or internal payloads from being formatted into client-side tracebacks.
+
 ## [1.0.4] - 2026-05-14
 
 ### Fixed

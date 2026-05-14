@@ -7,7 +7,7 @@ Returns local server health:
 ```json
 {
   "status": "ok",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "transport": "http",
   "auth_mode": "token"
 }

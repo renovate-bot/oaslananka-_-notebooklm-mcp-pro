@@ -6,6 +6,11 @@ The canonical changelog lives at:
 https://github.com/oaslananka/notebooklm-mcp-pro/blob/main/CHANGELOG.md
 ```
 
+## 1.0.5
+
+Patch release that suppresses backend exception chaining when tool and resource
+helpers convert failures into MCP-safe errors.
+
 ## 1.0.4
 
 Patch release with NotebookLM auth resolution corrected so the newest canonical

@@ -30,7 +30,7 @@ jobs:
             exit 1
           fi
           case "$GITHUB_WORKSPACE" in
-            */_work/notebooklm-mcp-pro/notebooklm-mcp-pro) ;;
+            */_work/notebooklm-mcp-pro/notebooklm-mcp-pro|*/work/notebooklm-mcp-pro/notebooklm-mcp-pro) ;;
             *)
               echo "Refusing to clean unexpected workspace: $GITHUB_WORKSPACE" >&2
               exit 1

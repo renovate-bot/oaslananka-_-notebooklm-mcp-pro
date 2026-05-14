@@ -123,7 +123,7 @@ async def run_tool(
             error_code=exc.error_code,
             error_class=exc.__class__.__name__,
         )
-        raise ToolError(exc.safe_message) from exc
+        raise ToolError(exc.safe_message) from None
     except PydanticValidationError as exc:
         logger.warning(
             "tool_failed",
@@ -132,7 +132,7 @@ async def run_tool(
             error_code=-32602,
             error_class=exc.__class__.__name__,
         )
-        raise ToolError(str(exc)) from exc
+        raise ToolError(str(exc)) from None
     except Exception as exc:
         logger.warning(
             "tool_failed",
@@ -141,7 +141,7 @@ async def run_tool(
             error_code=-32000,
             error_class=exc.__class__.__name__,
         )
-        raise ToolError("NotebookLM tool execution failed.") from exc
+        raise ToolError("NotebookLM tool execution failed.") from None
     logger.info("tool_completed", tool=tool_name, args_hash=arg_hash)
     return result
 
@@ -157,7 +157,7 @@ async def run_resource(resource_uri: str, operation: Callable[[], Awaitable[T]])
             error_code=exc.error_code,
             error_class=exc.__class__.__name__,
         )
-        raise ResourceError(exc.safe_message) from exc
+        raise ResourceError(exc.safe_message) from None
     except Exception as exc:
         logger.warning(
             "resource_failed",
@@ -165,7 +165,7 @@ async def run_resource(resource_uri: str, operation: Callable[[], Awaitable[T]])
             error_code=-32000,
             error_class=exc.__class__.__name__,
         )
-        raise ResourceError("NotebookLM resource read failed.") from exc
+        raise ResourceError("NotebookLM resource read failed.") from None
 
 
 def require_confirmation(confirm: bool, action: str) -> None:

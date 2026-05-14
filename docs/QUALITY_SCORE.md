@@ -22,14 +22,14 @@ owners.
 
 ## OpenSSF Scorecard
 
-The latest local Scorecard baseline before this hardening pass was:
+The source of truth is the public OpenSSF Scorecard badge in `README.md`, the
+weekly `OpenSSF Scorecard` workflow, and the GitHub code scanning alert feed.
+The last local hardening audit before strict branch-protection changes measured
+`7.3 / 10`; the remaining deductions are mostly repository-governance signals
+that improve only after GitHub settings, project age, review history, and
+community participation accumulate.
 
-```text
-Aggregate score: 5.6 / 10
-Commit: 46538068a5c5de5ba84b8dff40045019cf4e1f56
-```
-
-The hardening pass adds or changes:
+The 1.0 hardening pass adds or changes:
 
 - OpenSSF Scorecard workflow with SARIF upload.
 - Top-level read-only workflow permissions with job-level write permissions.
@@ -39,29 +39,33 @@ The hardening pass adds or changes:
 - Manual release-signing workflow for existing release assets.
 - ClusterFuzzLite batch fuzzing with an Atheris target for settings validation.
 - Agent-readable architecture, quality, and debt documentation.
+- Self-hosted runner cleanup before checkout so protected workflows do not fail
+  on stale root-owned build directories.
+- Node 24 opt-in for JavaScript actions and current SHA-pinned action versions.
+- Standard PyPI trusted-publishing action for packaging detection.
 
-## Expected Score Movement
+## Scorecard Posture
 
-| Check | Before | Expected after merge and workflow runs | Notes |
-|---|---:|---:|---|
-| Binary-Artifacts | 10 | 10 | No checked-in binaries. |
-| Dangerous-Workflow | 10 | 10 | No `pull_request_target` checkout pattern. |
-| Dependency-Update-Tool | 10 | 10 | Dependabot is configured. |
-| License | 10 | 10 | MIT license is present. |
-| Packaging | 10 | 10 | PyPI, GHCR, and GitHub Release workflows exist. |
-| SAST | 10 | 10 | CodeQL is configured. |
-| Security-Policy | 10 | 10 | Security policy is present. |
-| Vulnerabilities | 10 | 10 | No known open vulnerabilities at baseline. |
-| Pinned-Dependencies | 7 | 9-10 | Remaining result depends on Scorecard parser support for pinned composite actions. |
-| Token-Permissions | 0 | 9-10 | Write scopes moved to job-level only. |
-| Signed-Releases | 0 | 8-10 | Requires running `Sign Release Artifacts` for existing releases. |
-| Branch-Protection | 4 | 8-10 | Requires stricter repository settings after the hardening PR is merged. |
-| CI-Tests | -1 | 8-10 | Requires a merged pull request with passing checks. |
-| Code-Review | 0 | 0-10 | Requires a real non-author review or implicit merge-by-different-user history. |
-| Maintained | 0 | Time-gated | Scorecard does not fully score repos younger than 90 days. |
-| Contributors | 3 | Community-gated | Requires contributors from multiple organizations. |
-| CII-Best-Practices | 0 | External-gated | Requires an OpenSSF Best Practices badge application. |
-| Fuzzing | 0 | 10 | ClusterFuzzLite is deployed with a Python Atheris fuzz target. |
+| Check | Current posture | Notes |
+|---|---|---|
+| Binary-Artifacts | Maximal | No checked-in binaries. |
+| Branch-Protection | Repository setting | Main requires status checks, linear history, conversation resolution, and strict PR review settings. |
+| CI-Tests | Active | CI requires lint, typecheck, tests across supported Python versions, and package build. |
+| CII-Best-Practices | External-gated | Requires completing the OpenSSF Best Practices badge application outside this repository. |
+| Code-Review | History-gated | Strict branch settings enforce future reviews; score improves as reviewed PR history accumulates. |
+| Contributors | Community-gated | A single-maintainer project cannot maximize this score through code changes alone. |
+| Dangerous-Workflow | Maximal | No unsafe `pull_request_target` checkout pattern. |
+| Dependency-Update-Tool | Maximal | Dependabot is configured for GitHub Actions and Python dependencies. |
+| Fuzzing | Active | ClusterFuzzLite and deterministic Atheris smoke coverage are configured. |
+| License | Maximal | MIT license is present. |
+| Maintained | Time-gated | New repositories score low until there is more than 90 days of maintenance history. |
+| Packaging | Active | Release workflow publishes PyPI packages, GHCR images, GitHub releases, SBOMs, and Sigstore bundles. |
+| Pinned-Dependencies | Maximal | GitHub Actions are SHA-pinned and Docker bases are digest-pinned. |
+| SAST | Maximal | CodeQL and Bandit are configured. |
+| Security-Policy | Maximal | Security policy is present and published. |
+| Signed-Releases | Strong | Release assets include Sigstore bundles; historical releases can be signed with the manual signing workflow. |
+| Token-Permissions | Maximal | Workflows default to read-only permissions with job-level write scopes. |
+| Vulnerabilities | Maximal | Dependency and code scanning are enabled; open code scanning alerts should remain at zero. |
 
 ## Release Verification
 

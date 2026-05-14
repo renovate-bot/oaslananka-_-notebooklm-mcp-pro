@@ -27,14 +27,14 @@
 === "pip"
     ```bash
     pip install notebooklm-mcp-pro
-    notebooklm-py login
+    python -m notebooklm login --storage ~/.config/nlm-mcp/notebooklm_auth.json
     nlm-mcp stdio
     ```
 
 === "uv"
     ```bash
     uv tool install notebooklm-mcp-pro
-    notebooklm-py login
+    uvx --from notebooklm-py notebooklm login --storage ~/.config/nlm-mcp/notebooklm_auth.json
     nlm-mcp stdio
     ```
 

@@ -4,7 +4,7 @@
 
 - Python 3.11, 3.12, or 3.13.
 - A Google account with NotebookLM access.
-- A local NotebookLM auth file created by `notebooklm-py login`, or an inline auth JSON value supplied through `NLM_MCP_NOTEBOOKLM_AUTH_JSON`.
+- A local NotebookLM auth file created by `python -m notebooklm login --storage <path>`, or an inline auth JSON value supplied through `NLM_MCP_NOTEBOOKLM_AUTH_JSON`.
 - `uv`, `pipx`, `pip`, or Docker.
 
 The default auth file path is:
@@ -16,7 +16,14 @@ The default auth file path is:
 Run this once on a workstation with a browser:
 
 ```bash
-notebooklm-py login
+python -m notebooklm login --storage ~/.config/nlm-mcp/notebooklm_auth.json
+```
+
+On Windows PowerShell:
+
+```powershell
+New-Item -ItemType Directory -Force "$env:USERPROFILE\.config\nlm-mcp"
+python -m notebooklm login --storage "$env:USERPROFILE\.config\nlm-mcp\notebooklm_auth.json"
 ```
 
 ## Install with uv
@@ -32,6 +39,13 @@ For browser login support in the same environment:
 
 ```bash
 uv tool install "notebooklm-mcp-pro[browser]"
+```
+
+If you use `uv tool install`, the dependency CLI is isolated from your system
+Python. Create the NotebookLM auth file with `uvx`:
+
+```bash
+uvx --from notebooklm-py notebooklm login --storage ~/.config/nlm-mcp/notebooklm_auth.json
 ```
 
 ## Install with pip

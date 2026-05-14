@@ -51,7 +51,26 @@ def test_cli_transport_commands_are_present() -> None:
     assert serve.exit_code == 0
     assert "http configuration ok" in serve.stdout
     assert login.exit_code == 0
-    assert "notebooklm-py" in login.stdout
+    assert "notebooklm login" in login.stdout
+
+
+def test_cli_login_prints_module_command_with_storage_path() -> None:
+    result = CliRunner().invoke(app, ["login"])
+
+    assert result.exit_code == 0
+    assert "python -m notebooklm login --storage" in result.stdout
+    assert '--storage "' in result.stdout
+    assert "notebooklm_auth.json" in result.stdout
+
+
+def test_cli_login_ignores_incomplete_http_auth_environment(monkeypatch: MonkeyPatch) -> None:
+    monkeypatch.setenv("NLM_MCP_AUTH_MODE", "token")
+    monkeypatch.delenv("NLM_MCP_BEARER_TOKEN", raising=False)
+
+    result = CliRunner().invoke(app, ["login"])
+
+    assert result.exit_code == 0
+    assert "python -m notebooklm login --storage" in result.stdout
 
 
 def test_cli_serve_starts_uvicorn(monkeypatch: MonkeyPatch) -> None:

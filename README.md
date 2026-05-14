@@ -137,7 +137,14 @@ make test
 Run the NotebookLM browser login once:
 
 ```bash
-notebooklm-py login
+python -m notebooklm login --storage ~/.config/nlm-mcp/notebooklm_auth.json
+```
+
+On Windows PowerShell:
+
+```powershell
+New-Item -ItemType Directory -Force "$env:USERPROFILE\.config\nlm-mcp"
+python -m notebooklm login --storage "$env:USERPROFILE\.config\nlm-mcp\notebooklm_auth.json"
 ```
 
 The default auth file is:
@@ -168,7 +175,7 @@ Treat this JSON as a secret.
 
 ```bash
 pip install notebooklm-mcp-pro
-notebooklm-py login
+python -m notebooklm login --storage ~/.config/nlm-mcp/notebooklm_auth.json
 nlm-mcp stdio
 ```
 

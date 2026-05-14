@@ -67,5 +67,5 @@ Run admin.health and list my NotebookLM notebooks.
 | Problem | Resolution |
 |---|---|
 | Command not found | Use the absolute path from `which nlm-mcp` or `where nlm-mcp`. |
-| Login expired | Run `notebooklm-py login` again. |
+| Login expired | Run `python -m notebooklm login --storage <path>` again. |
 | No tools shown | Restart the desktop app after editing the config file. |

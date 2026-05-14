@@ -225,11 +225,12 @@ def login(
 ) -> None:
     """Show the local NotebookLM browser-login command path."""
     if dry_run:
-        typer.echo("notebooklm-py login command path ok")
+        typer.echo("notebooklm login command path ok")
         return
+    auth_file = Settings.from_overrides(auth_mode=AuthMode.NONE).notebooklm_auth_file.expanduser()
     typer.echo(
-        "Use notebooklm-py login to create the auth file configured by "
-        "NLM_MCP_NOTEBOOKLM_AUTH_FILE."
+        "Use the NotebookLM CLI to create the auth file configured by "
+        f'NLM_MCP_NOTEBOOKLM_AUTH_FILE:\npython -m notebooklm login --storage "{auth_file}"'
     )
 
 

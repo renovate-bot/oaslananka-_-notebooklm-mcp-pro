@@ -12,7 +12,14 @@ Stdio mode does not add an MCP auth layer because it is local to the caller proc
 Run:
 
 ```bash
-notebooklm-py login
+python -m notebooklm login --storage ~/.config/nlm-mcp/notebooklm_auth.json
+```
+
+On Windows PowerShell:
+
+```powershell
+New-Item -ItemType Directory -Force "$env:USERPROFILE\.config\nlm-mcp"
+python -m notebooklm login --storage "$env:USERPROFILE\.config\nlm-mcp\notebooklm_auth.json"
 ```
 
 The browser login writes a storage-state JSON file. By default, this project reads:
@@ -103,5 +110,5 @@ The callback stores a 24-hour local session token in SQLite and sends it as a se
 | `bearer_token required` | Set `NLM_MCP_BEARER_TOKEN` when `NLM_MCP_AUTH_MODE=token`. |
 | `github_client_id required` | Set GitHub OAuth variables before starting OAuth mode. |
 | Redirect URI mismatch | Make the GitHub app callback exactly match `NLM_MCP_BASE_URL + NLM_MCP_GITHUB_REDIRECT_PATH`. |
-| NotebookLM login expired | Re-run `notebooklm-py login` and replace the mounted auth file. |
+| NotebookLM login expired | Re-run `python -m notebooklm login --storage <path>` and replace the mounted auth file. |
 | Container cannot read auth file | Mount the file read-only and ensure the container user can read it. |

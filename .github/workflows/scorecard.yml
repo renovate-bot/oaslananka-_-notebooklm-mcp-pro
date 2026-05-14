@@ -47,7 +47,7 @@ jobs:
             --format=json \
             --show-details \
             --output=scorecard.json
-          python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          python3 - <<'PY' >> "$GITHUB_STEP_SUMMARY"
           import json
           from pathlib import Path
 

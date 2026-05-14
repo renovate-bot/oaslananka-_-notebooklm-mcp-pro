@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-05-14
+
 ### Added
 
 - OpenSSF Scorecard workflow with SARIF upload and public result publishing.
@@ -22,6 +24,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Release workflow now signs wheel, sdist, and SBOM assets with Sigstore bundles.
 - CI, security, docs, CodeQL, release, and manual workflows now define concurrency groups to cancel stale runs.
 - CI now runs on pull requests and main-branch pushes, avoiding duplicate feature-branch push runs.
+
+### Fixed
+
+- Corrected NotebookLM login instructions to use the installed `notebooklm` CLI instead of the PyPI package name.
+- Quoted the auth-file storage path printed by `nlm-mcp login` so paths containing spaces can be copied safely.
+- `nlm-mcp login` now ignores incomplete HTTP auth configuration while printing the NotebookLM backend-auth setup command.
+- Documented the `uvx --from notebooklm-py notebooklm login` flow for isolated `uv tool install` environments.
 
 ## [1.0.0] - 2026-05-13
 

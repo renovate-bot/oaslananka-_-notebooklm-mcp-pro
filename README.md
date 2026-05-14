@@ -137,14 +137,26 @@ make test
 Run the NotebookLM browser login once:
 
 ```bash
-python -m notebooklm login --storage ~/.config/nlm-mcp/notebooklm_auth.json
+notebooklm login --storage ~/.config/nlm-mcp/notebooklm_auth.json
 ```
 
 On Windows PowerShell:
 
 ```powershell
 New-Item -ItemType Directory -Force "$env:USERPROFILE\.config\nlm-mcp"
-python -m notebooklm login --storage "$env:USERPROFILE\.config\nlm-mcp\notebooklm_auth.json"
+notebooklm login --storage "$env:USERPROFILE\.config\nlm-mcp\notebooklm_auth.json"
+```
+
+If the console script directory is not on `PATH`, use the module entrypoint:
+
+```bash
+python -m notebooklm login --storage ~/.config/nlm-mcp/notebooklm_auth.json
+```
+
+For isolated `uv` usage without a global install:
+
+```bash
+uvx --from notebooklm-py notebooklm login --storage ~/.config/nlm-mcp/notebooklm_auth.json
 ```
 
 The default auth file is:
@@ -175,7 +187,7 @@ Treat this JSON as a secret.
 
 ```bash
 pip install notebooklm-mcp-pro
-python -m notebooklm login --storage ~/.config/nlm-mcp/notebooklm_auth.json
+notebooklm login --storage ~/.config/nlm-mcp/notebooklm_auth.json
 nlm-mcp stdio
 ```
 
@@ -605,8 +617,8 @@ make run-stdio
 Releases are cut from tags:
 
 ```bash
-git tag v1.0.0
-git push origin v1.0.0
+git tag vX.Y.Z
+git push origin vX.Y.Z
 ```
 
 The release workflow validates the tag, builds distributions, generates an SBOM, signs release assets with Sigstore, publishes to PyPI, pushes GHCR images, and creates a GitHub release.

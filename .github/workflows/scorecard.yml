@@ -17,48 +17,21 @@ concurrency:
 jobs:
   analysis:
     name: scorecard
-    runs-on: [self-hosted, Linux, X64]
+    runs-on: ubuntu-latest
     permissions:
       actions: read
       contents: read
+      id-token: write
+      security-events: write
     steps:
-      - name: Download OpenSSF Scorecard
-        shell: bash
-        env:
-          SCORECARD_VERSION: "5.5.0"
-          SCORECARD_SHA256: "83b90a05c1540ef1390db1cd5711e5fd04be9c1d8537fb84d39d02092d6a8dff"
-        run: |
-          set -euo pipefail
-          archive="scorecard_${SCORECARD_VERSION}_linux_amd64.tar.gz"
-          url="https://github.com/ossf/scorecard/releases/download/v${SCORECARD_VERSION}/${archive}"
-          curl -fsSLo "$archive" "$url"
-          echo "${SCORECARD_SHA256}  ${archive}" | sha256sum -c -
-          tar -xzf "$archive"
-          ./scorecard version
       - name: Run OpenSSF Scorecard
-        shell: bash
-        env:
-          GITHUB_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
-          ./scorecard \
-            --repo="github.com/${GITHUB_REPOSITORY}" \
-            --commit="${GITHUB_SHA}" \
-            --format=json \
-            --show-details \
-            --output=scorecard.json
-          python3 - <<'PY' >> "$GITHUB_STEP_SUMMARY"
-          import json
-          from pathlib import Path
-
-          data = json.loads(Path("scorecard.json").read_text(encoding="utf-8"))
-          print("## OpenSSF Scorecard")
-          print()
-          print(f"Aggregate score: **{data.get('score', 'n/a')}**")
-          print()
-          print("| Check | Score | Reason |")
-          print("| --- | ---: | --- |")
-          for check in sorted(data.get("checks", []), key=lambda item: item.get("name", "")):
-              reason = str(check.get("reason", "")).replace("|", "\\|")
-              print(f"| {check.get('name', '')} | {check.get('score', '')} | {reason} |")
-          PY
+        uses: ossf/scorecard-action@4eaacf0543bb3f2c246792bd56e8cdeffafb205a # v2.4.3
+        with:
+          results_file: scorecard.sarif
+          results_format: sarif
+          publish_results: true
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload Scorecard SARIF
+        uses: github/codeql-action/upload-sarif@68bde559dea0fdcac2102bfdf6230c5f70eb485e # v4.35.4
+        with:
+          sarif_file: scorecard.sarif

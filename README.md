@@ -67,7 +67,7 @@ Works with **Claude Desktop**, **Claude.ai**, **ChatGPT**, **Cursor**, **VS Code
 - Fly.io template.
 - Kubernetes manifests.
 - Release workflow with wheel, sdist, SBOM, Sigstore bundles, PyPI, and GHCR publishing.
-- OpenSSF Scorecard workflow with SARIF upload.
+- OpenSSF Scorecard workflow with SARIF upload and public result publishing.
 - ClusterFuzzLite scheduled fuzzing for configuration-boundary validation.
 - Digest-pinned Docker base images.
 - SHA-pinned GitHub Actions.
@@ -553,7 +553,7 @@ flowchart TB
 - Artifact downloads are constrained to the artifacts directory.
 - Destructive tools require explicit confirmation.
 - CI runs lint, typecheck, tests, dependency audit, static analysis, and secret scanning.
-- OpenSSF Scorecard runs on `main` and publishes SARIF.
+- OpenSSF Scorecard runs on `main`, publishes SARIF, and updates the public Scorecard badge/API.
 - ClusterFuzzLite runs scheduled Atheris fuzzing for settings validation.
 - GitHub Actions use top-level read-only permissions and job-level write scopes.
 - Release assets are signed with Sigstore bundles.

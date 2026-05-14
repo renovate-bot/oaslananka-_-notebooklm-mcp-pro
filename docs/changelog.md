@@ -6,6 +6,11 @@ The canonical changelog lives at:
 https://github.com/oaslananka/notebooklm-mcp-pro/blob/main/CHANGELOG.md
 ```
 
+## 1.0.3
+
+Patch release with the release workflow corrected so PyPI receives only wheel
+and source distribution files before Sigstore bundles are generated.
+
 ## 1.0.2
 
 Patch release with VS Code-compatible MCP tool names, public pull-request runner

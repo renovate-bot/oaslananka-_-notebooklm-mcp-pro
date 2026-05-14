@@ -109,18 +109,12 @@ jobs:
       - run: uv sync --extra dev
       - run: uv run python -m build
       - run: uv run cyclonedx-py environment --output-format json -o sbom.json
-      - name: Sign release artifacts
-        uses: sigstore/gh-action-sigstore-python@04cffa1d795717b140764e8b640de88853c92acc # v3.3.0
-        with:
-          inputs: |
-            dist/*
-            sbom.json
-          release-signing-artifacts: false
       - name: Generate build provenance attestations
         uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3
         with:
           subject-path: |
-            dist/*
+            dist/*.whl
+            dist/*.tar.gz
             sbom.json
       - name: Set up Docker Buildx
         run: |
@@ -147,6 +141,14 @@ jobs:
         uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # release/v1
         with:
           packages-dir: dist/
+      - name: Sign release artifacts
+        uses: sigstore/gh-action-sigstore-python@04cffa1d795717b140764e8b640de88853c92acc # v3.3.0
+        with:
+          inputs: |
+            dist/*.whl
+            dist/*.tar.gz
+            sbom.json
+          release-signing-artifacts: false
       - uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3
         with:
           files: |

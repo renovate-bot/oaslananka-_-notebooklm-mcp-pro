@@ -22,17 +22,19 @@ owners.
 
 ## OpenSSF Scorecard
 
-The source of truth is the public OpenSSF Scorecard badge in `README.md`, the
-weekly `OpenSSF Scorecard` workflow, the Scorecard API results, and the GitHub
-code scanning alert feed.
-The last local hardening audit before strict branch-protection changes measured
-`7.3 / 10`; the remaining deductions are mostly repository-governance signals
+The source of truth is the `OpenSSF Scorecard` workflow summary, the
+uploaded Scorecard SARIF results, and the GitHub code scanning alert feed.
+Public Scorecard badge/API publishing is configured as an opt-in job controlled
+by `ENABLE_GITHUB_HOSTED_SCORECARD=true` because OpenSSF publishing requires a
+GitHub-hosted Ubuntu runner.
+The last local hardening audit after strict branch-protection changes measured
+`7.7 / 10`; the remaining deductions are mostly repository-governance signals
 that improve only after GitHub settings, project age, review history, and
 community participation accumulate.
 
 The 1.0 hardening pass adds or changes:
 
-- OpenSSF Scorecard workflow with SARIF upload and public result publishing.
+- OpenSSF Scorecard workflow with SARIF upload and optional public result publishing.
 - Top-level read-only workflow permissions with job-level write permissions.
 - Full SHA pinning for GitHub Actions introduced by the hardening pass.
 - Digest pinning for Docker base images and checksum verification for the Gitleaks scanner binary.

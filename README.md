@@ -9,7 +9,7 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://pypi.org/project/notebooklm-mcp-pro/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Coverage](https://img.shields.io/codecov/c/github/oaslananka/notebooklm-mcp-pro)](https://codecov.io/gh/oaslananka/notebooklm-mcp-pro)
-[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/oaslananka/notebooklm-mcp-pro/badge)](https://scorecard.dev/viewer/?uri=github.com/oaslananka/notebooklm-mcp-pro)
+[![OpenSSF Scorecard](https://github.com/oaslananka/notebooklm-mcp-pro/actions/workflows/scorecard.yml/badge.svg)](https://github.com/oaslananka/notebooklm-mcp-pro/actions/workflows/scorecard.yml)
 [![Code style: ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
 Connect any MCP-capable client to Google NotebookLM.
@@ -67,7 +67,7 @@ Works with **Claude Desktop**, **Claude.ai**, **ChatGPT**, **Cursor**, **VS Code
 - Fly.io template.
 - Kubernetes manifests.
 - Release workflow with wheel, sdist, SBOM, Sigstore bundles, PyPI, and GHCR publishing.
-- OpenSSF Scorecard workflow with SARIF upload and public result publishing.
+- OpenSSF Scorecard workflow with SARIF upload and optional public result publishing.
 - ClusterFuzzLite scheduled fuzzing for configuration-boundary validation.
 - Digest-pinned Docker base images.
 - SHA-pinned GitHub Actions.
@@ -553,7 +553,7 @@ flowchart TB
 - Artifact downloads are constrained to the artifacts directory.
 - Destructive tools require explicit confirmation.
 - CI runs lint, typecheck, tests, dependency audit, static analysis, and secret scanning.
-- OpenSSF Scorecard runs on `main`, publishes SARIF, and updates the public Scorecard badge/API.
+- OpenSSF Scorecard runs on `main`, publishes SARIF, and can publish public Scorecard badge/API results when GitHub-hosted runners are available.
 - ClusterFuzzLite runs scheduled Atheris fuzzing for settings validation.
 - GitHub Actions use top-level read-only permissions and job-level write scopes.
 - Release assets are signed with Sigstore bundles.

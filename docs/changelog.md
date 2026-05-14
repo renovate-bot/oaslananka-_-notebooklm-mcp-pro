@@ -6,6 +6,12 @@ The canonical changelog lives at:
 https://github.com/oaslananka/notebooklm-mcp-pro/blob/main/CHANGELOG.md
 ```
 
+## 1.0.6
+
+Patch release that publishes PyPI artifacts directly from the self-hosted runner
+with `uv publish`, preserving trusted publishing while avoiding Docker action
+workspace mount mismatches.
+
 ## 1.0.5
 
 Patch release that suppresses backend exception chaining when tool and resource

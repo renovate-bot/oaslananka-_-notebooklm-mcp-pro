@@ -108,6 +108,29 @@ jobs:
           python-version: "3.11"
       - run: uv sync --extra dev
       - run: uv run python -m build
+      - name: Verify release distributions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          from pathlib import Path
+
+          dist = Path("dist")
+          files = sorted(path.name for path in dist.glob("*"))
+          version = os.environ["GITHUB_REF_NAME"].removeprefix("v")
+          expected_prefix = f"notebooklm_mcp_pro-{version}"
+          has_wheel = any(name.endswith(".whl") for name in files)
+          has_sdist = any(name.endswith(".tar.gz") for name in files)
+          unexpected = [name for name in files if not name.startswith(expected_prefix)]
+          if not has_wheel or not has_sdist:
+              raise SystemExit(f"Missing wheel or source distribution in dist/: {files}")
+          if unexpected:
+              raise SystemExit(f"Unexpected distribution file for {version}: {unexpected}")
+          print("Release distributions:")
+          for name in files:
+              print(f"- dist/{name}")
+          PY
       - run: uv run cyclonedx-py environment --output-format json -o sbom.json
       - name: Generate build provenance attestations
         uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3
@@ -138,9 +161,11 @@ jobs:
             -t "${IMAGE}:latest" \
             .
       - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # release/v1
-        with:
-          packages-dir: dist/
+        run: |
+          uv publish \
+            --trusted-publishing always \
+            --check-url https://pypi.org/simple/notebooklm-mcp-pro/ \
+            dist/*.whl dist/*.tar.gz
       - name: Sign release artifacts
         uses: sigstore/gh-action-sigstore-python@04cffa1d795717b140764e8b640de88853c92acc # v3.3.0
         with:

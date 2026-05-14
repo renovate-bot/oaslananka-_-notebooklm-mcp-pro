@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.6] - 2026-05-14
+
+### Fixed
+
+- Release workflow now publishes to PyPI with `uv publish` on the self-hosted runner, avoiding Docker-action workspace mount mismatches while preserving trusted publishing.
+- Added an explicit wheel and source distribution check before SBOM generation, attestation, container publishing, PyPI publishing, and release asset signing.
+
 ## [1.0.5] - 2026-05-14
 
 ### Fixed

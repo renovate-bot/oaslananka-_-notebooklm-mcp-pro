@@ -1,3 +1,5 @@
+import logging
+
 import structlog
 from _pytest.capture import CaptureFixture
 
@@ -19,3 +21,17 @@ def test_get_logger_returns_structlog_bound_logger() -> None:
     logger = get_logger("nlm_mcp.tests")
 
     assert isinstance(logger, structlog.stdlib.BoundLogger)
+
+
+def test_configure_logging_suppresses_sensitive_http_client_info_logs() -> None:
+    configure_logging(Settings(log_format=LogFormat.JSON, log_level="DEBUG"))
+
+    assert not logging.getLogger("httpx").isEnabledFor(logging.INFO)
+    assert not logging.getLogger("httpcore").isEnabledFor(logging.INFO)
+
+
+def test_configure_logging_respects_stricter_external_log_level() -> None:
+    configure_logging(Settings(log_format=LogFormat.JSON, log_level="ERROR"))
+
+    assert not logging.getLogger("httpx").isEnabledFor(logging.WARNING)
+    assert not logging.getLogger("httpcore").isEnabledFor(logging.WARNING)

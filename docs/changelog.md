@@ -6,6 +6,11 @@ The canonical changelog lives at:
 https://github.com/oaslananka/notebooklm-mcp-pro/blob/main/CHANGELOG.md
 ```
 
+## 1.0.7
+
+Patch release that suppresses external HTTP client INFO logs so expired
+NotebookLM sessions cannot print auth redirect URLs to MCP client stderr.
+
 ## 1.0.6
 
 Patch release that publishes PyPI artifacts directly from the self-hosted runner

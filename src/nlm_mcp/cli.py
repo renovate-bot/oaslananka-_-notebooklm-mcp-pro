@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import shutil
 import subprocess
 import sys
 from copy import deepcopy
+from pathlib import Path
 from typing import Annotated
 
 import typer
@@ -171,6 +173,52 @@ async def _json_payload(request: Request) -> dict[str, object]:
     return value if isinstance(value, dict) else {}
 
 
+def _notebooklm_default_auth_file() -> Path:
+    from nlm_mcp.backend.client import (  # noqa: PLC0415
+        _notebooklm_default_auth_file as resolve_path,
+    )
+
+    return resolve_path().expanduser()
+
+
+def _readable_regular_file(path: Path) -> bool:
+    try:
+        if not path.is_file():
+            return False
+        with path.open("rb"):
+            return True
+    except OSError:
+        return False
+
+
+def _newest_readable_file(*paths: Path) -> Path | None:
+    newest: Path | None = None
+    newest_mtime = float("-inf")
+    for path in paths:
+        expanded = path.expanduser()
+        if not _readable_regular_file(expanded):
+            continue
+        try:
+            mtime = expanded.stat().st_mtime
+        except OSError:
+            continue
+        if mtime > newest_mtime:
+            newest = expanded
+            newest_mtime = mtime
+    return newest
+
+
+def _sync_notebooklm_login_auth_file(auth_file: Path) -> Path:
+    requested_auth_file = auth_file.expanduser()
+    profile_auth_file = _notebooklm_default_auth_file()
+    newest_auth_file = _newest_readable_file(requested_auth_file, profile_auth_file)
+    if newest_auth_file is None or newest_auth_file == requested_auth_file:
+        return requested_auth_file
+    requested_auth_file.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(newest_auth_file, requested_auth_file)
+    return requested_auth_file
+
+
 def _http_app(settings: Settings | None = None) -> Starlette:
     from nlm_mcp.auth.middleware import AuthMiddleware  # noqa: PLC0415
 
@@ -270,6 +318,11 @@ def login(
         subprocess.run(command, check=True)  # noqa: S603
     except subprocess.CalledProcessError as exc:
         raise typer.Exit(exc.returncode) from exc
+    try:
+        auth_file = _sync_notebooklm_login_auth_file(auth_file)
+    except OSError as exc:
+        typer.echo(f"NotebookLM auth file sync failed: {exc}", err=True)
+        raise typer.Exit(1) from exc
     typer.echo(f"NotebookLM auth file ready: {auth_file}")
 
 

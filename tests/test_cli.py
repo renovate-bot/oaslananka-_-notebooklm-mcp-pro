@@ -4,7 +4,7 @@ import runpy
 import subprocess
 import sys
 from pathlib import Path
-from typing import cast
+from typing import Any, cast
 
 from pydantic import SecretStr
 from pytest import MonkeyPatch
@@ -13,6 +13,7 @@ from starlette.testclient import TestClient
 from typer.testing import CliRunner
 
 from nlm_mcp import __version__
+from nlm_mcp import cli as cli_module
 from nlm_mcp.cli import _http_app, app
 from nlm_mcp.config import AuthMode, Settings, TransportMode
 
@@ -45,7 +46,7 @@ def test_cli_doctor_reports_bootstrap_environment() -> None:
     assert payload["version"] == __version__
     assert payload["transport"] == expected.transport.value
     assert payload["auth_mode"] == expected.auth_mode.value
-    assert payload["notebooklm_auth"]["kind"] in {"default", "env_json", "file"}
+    assert payload["notebooklm_auth"]["kind"] in {"default", "env_json", "file", "missing"}
 
 
 def test_cli_doctor_reports_missing_custom_auth_file(monkeypatch: MonkeyPatch) -> None:
@@ -126,6 +127,133 @@ def test_cli_login_runs_module_command_with_storage_path(
     assert "Ensuring Playwright Chromium is installed." in result.stdout
     assert f"Auth storage: {auth_file}" in result.stdout
     assert f"NotebookLM auth file ready: {auth_file}" in result.stdout
+
+
+def test_cli_login_syncs_newer_notebooklm_profile_storage(
+    monkeypatch: MonkeyPatch, tmp_path: Path
+) -> None:
+    auth_file = tmp_path / "config" / "notebooklm_auth.json"
+    profile_storage = tmp_path / "profiles" / "default" / "storage_state.json"
+    profile_payload = '{"cookies": [{"name": "fresh"}]}'
+    browser_command = [sys.executable, "-m", "playwright", "install", "chromium"]
+    login_command = [sys.executable, "-m", "notebooklm", "--storage", str(auth_file), "login"]
+    calls: list[list[str]] = []
+
+    def fake_run(command: list[str], *, check: bool) -> None:
+        calls.append(command)
+        assert check is True
+        if command == login_command:
+            profile_storage.parent.mkdir(parents=True)
+            profile_storage.write_text(profile_payload, encoding="utf-8")
+
+    monkeypatch.setenv("NLM_MCP_NOTEBOOKLM_AUTH_FILE", str(auth_file))
+    monkeypatch.setattr("nlm_mcp.cli.subprocess.run", fake_run)
+    monkeypatch.setattr(
+        "nlm_mcp.cli._notebooklm_default_auth_file",
+        lambda: profile_storage,
+        raising=False,
+    )
+
+    result = CliRunner().invoke(app, ["login"])
+
+    assert result.exit_code == 0
+    assert calls == [browser_command, login_command]
+    assert auth_file.read_text(encoding="utf-8") == profile_payload
+    assert f"NotebookLM auth file ready: {auth_file}" in result.stdout
+
+
+def test_cli_sync_auth_file_keeps_requested_file_when_it_is_newest(
+    monkeypatch: MonkeyPatch, tmp_path: Path
+) -> None:
+    auth_file = tmp_path / "notebooklm_auth.json"
+    profile_storage = tmp_path / "profiles" / "default" / "storage_state.json"
+    auth_file.write_text('{"cookies": [{"name": "requested"}]}', encoding="utf-8")
+
+    monkeypatch.setattr("nlm_mcp.cli._notebooklm_default_auth_file", lambda: profile_storage)
+
+    resolved = cli_module._sync_notebooklm_login_auth_file(auth_file)
+
+    assert resolved == auth_file
+    assert auth_file.read_text(encoding="utf-8") == '{"cookies": [{"name": "requested"}]}'
+
+
+def test_cli_notebooklm_default_auth_file_delegates_to_backend(
+    monkeypatch: MonkeyPatch, tmp_path: Path
+) -> None:
+    profile_storage = tmp_path / "profiles" / "default" / "storage_state.json"
+
+    monkeypatch.setattr(
+        "nlm_mcp.backend.client._notebooklm_default_auth_file",
+        lambda: profile_storage,
+    )
+
+    assert cli_module._notebooklm_default_auth_file() == profile_storage
+
+
+def test_cli_auth_storage_helpers_tolerate_filesystem_races(
+    monkeypatch: MonkeyPatch, tmp_path: Path
+) -> None:
+    path_type = type(tmp_path)
+    unreadable = tmp_path / "unreadable.json"
+    raced = tmp_path / "raced.json"
+    unreadable.write_text("{}", encoding="utf-8")
+    raced.write_text("{}", encoding="utf-8")
+    stat_calls = 0
+
+    def fake_is_file(self: Path) -> bool:
+        if self.name == "raced-is-file.json":
+            raise OSError("raced")
+        return True
+
+    def fake_open(self: Path, *args: Any, **kwargs: Any) -> Any:
+        if self.name == "unreadable.json":
+            raise OSError("raced")
+        return Path.open(self, *args, **kwargs)
+
+    def fake_stat(self: Path) -> object:
+        nonlocal stat_calls
+        stat_calls += 1
+        raise OSError("raced")
+
+    monkeypatch.setattr(path_type, "is_file", fake_is_file)
+    assert cli_module._readable_regular_file(tmp_path / "raced-is-file.json") is False
+
+    monkeypatch.setattr(path_type, "open", fake_open)
+    assert cli_module._readable_regular_file(unreadable) is False
+
+    monkeypatch.setattr(path_type, "stat", fake_stat)
+    assert cli_module._newest_readable_file(raced) is None
+    assert stat_calls == 1
+
+
+def test_cli_login_reports_auth_sync_filesystem_error(
+    monkeypatch: MonkeyPatch, tmp_path: Path
+) -> None:
+    auth_file = tmp_path / "config" / "notebooklm_auth.json"
+    profile_storage = tmp_path / "profiles" / "default" / "storage_state.json"
+    login_command = [sys.executable, "-m", "notebooklm", "--storage", str(auth_file), "login"]
+
+    def fake_run(command: list[str], *, check: bool) -> None:
+        assert check is True
+        if command == login_command:
+            profile_storage.parent.mkdir(parents=True)
+            profile_storage.write_text('{"cookies": [{"name": "fresh"}]}', encoding="utf-8")
+
+    def fake_copy2(source: Path, destination: Path) -> None:
+        assert source == profile_storage
+        assert destination == auth_file
+        raise OSError("disk full")
+
+    monkeypatch.setenv("NLM_MCP_NOTEBOOKLM_AUTH_FILE", str(auth_file))
+    monkeypatch.setattr("nlm_mcp.cli.subprocess.run", fake_run)
+    monkeypatch.setattr("nlm_mcp.cli._notebooklm_default_auth_file", lambda: profile_storage)
+    monkeypatch.setattr("nlm_mcp.cli.shutil.copy2", fake_copy2)
+
+    result = CliRunner().invoke(app, ["login"])
+
+    assert result.exit_code == 1
+    assert "NotebookLM auth file sync failed: disk full" in result.stderr
+    assert "Traceback" not in result.output
 
 
 def test_cli_login_ignores_incomplete_http_auth_environment(

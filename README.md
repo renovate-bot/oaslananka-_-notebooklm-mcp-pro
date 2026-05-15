@@ -603,7 +603,8 @@ flowchart TB
 - Use bearer tokens for personal deployments.
 - Use GitHub OAuth for multi-user deployments.
 - Store NotebookLM auth JSON in a secret manager.
-- Mount auth files read-only in containers.
+- Mount auth files read/write in long-running containers so refreshed cookies
+  can be persisted; use read-only mounts only for immutable deployments.
 - Keep `NLM_MCP_BASE_URL` on HTTPS for OAuth.
 - Artifact downloads are constrained to the artifacts directory.
 - Destructive tools require explicit confirmation.

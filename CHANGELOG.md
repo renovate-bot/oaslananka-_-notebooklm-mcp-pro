@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.14] - 2026-05-15
+
+### Fixed
+
+- `nlm-mcp login` now synchronizes the newest NotebookLM profile storage file
+  into the configured `NLM_MCP_NOTEBOOKLM_AUTH_FILE` path after browser login,
+  preventing stale `notebooklm_auth.json` uploads on Windows and hosted Docker
+  deployments.
+- Docker Compose now mounts the NotebookLM auth directory read/write by default,
+  allowing `notebooklm-py` to persist refreshed cookies in long-running servers.
+
 ## [1.0.13] - 2026-05-15
 
 ### Fixed

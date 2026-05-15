@@ -95,7 +95,7 @@ Mount the NotebookLM auth directory when the container needs live NotebookLM acc
 
 ```bash
 docker run --rm -p 8080:8080 \
-  -v "$HOME/.config/nlm-mcp:/home/appuser/.config/nlm-mcp:ro" \
+  -v "$HOME/.config/nlm-mcp:/home/appuser/.config/nlm-mcp:rw" \
   ghcr.io/oaslananka/notebooklm-mcp-pro:latest
 ```
 
@@ -132,7 +132,9 @@ For desktop clients, the command installed by `uv tool install` or `pipx install
 
 ### Linux
 
-When running as a systemd service, set `NLM_MCP_DATA_DIR` to a writable directory owned by the service user and mount the auth file read-only.
+When running as a systemd service, set `NLM_MCP_DATA_DIR` to a writable
+directory owned by the service user. If NotebookLM browser storage is mounted
+from the host, keep it writable so refreshed cookies can be persisted.
 
 ## Verify
 

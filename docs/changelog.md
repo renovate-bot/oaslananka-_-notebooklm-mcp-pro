@@ -6,6 +6,13 @@ The canonical changelog lives at:
 https://github.com/oaslananka/notebooklm-mcp-pro/blob/main/CHANGELOG.md
 ```
 
+## 1.0.14
+
+Patch release that syncs the freshest NotebookLM profile storage into the
+configured auth file after `nlm-mcp login`, preventing stale auth JSON uploads
+from Windows hosts to remote Docker deployments. Docker Compose also mounts the
+auth directory read/write by default so refreshed cookies can be persisted.
+
 ## 1.0.13
 
 Patch release that forwards NotebookLM auth settings through Docker Compose and

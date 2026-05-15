@@ -166,5 +166,5 @@ PKCE verification.
 | `bearer_token required` | Set `NLM_MCP_BEARER_TOKEN` when `NLM_MCP_AUTH_MODE=token`. |
 | `github_client_id required` | Set GitHub OAuth variables before starting OAuth mode. |
 | Redirect URI mismatch | Make the GitHub app callback exactly match `NLM_MCP_BASE_URL + NLM_MCP_GITHUB_REDIRECT_PATH`. |
-| NotebookLM login expired | Re-run `python -m notebooklm --storage <path> login` and replace the mounted auth file. |
-| Container cannot read auth file | Mount the file read-only and ensure the container user can read it. |
+| NotebookLM login expired | Re-run `nlm-mcp login` and replace the mounted auth file with the path set in `NLM_MCP_NOTEBOOKLM_AUTH_FILE`, or `~/.config/nlm-mcp/notebooklm_auth.json` when unset. |
+| Container cannot update auth file | Mount the auth directory read/write, or set `NLM_AUTH_MOUNT_MODE=rw` when using Docker Compose. |

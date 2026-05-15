@@ -91,7 +91,7 @@ def test_schema_server_url_templating() -> None:
         transport=TransportMode.HTTP,
         auth_mode=AuthMode.TOKEN,
         bearer_token=SecretStr("token"),
-        base_url="https://nlm.example.test",
+        base_url="https://nlm.example.test/",
     )
     with TestClient(_http_app(settings)) as client:
         response = client.get("/openapi.json")
@@ -134,6 +134,22 @@ def test_oauth_metadata_endpoints() -> None:
     assert protected.json()["resource"] == "https://nlm.example.test"
     assert authorization.status_code == HTTP_OK
     assert authorization.json()["authorization_endpoint"] == ("https://nlm.example.test/auth/login")
+
+
+def test_path_aware_oauth_protected_resource_metadata() -> None:
+    settings = Settings(
+        transport=TransportMode.HTTP,
+        auth_mode=AuthMode.TOKEN,
+        bearer_token=SecretStr("token"),
+        base_url="https://nlm.example.test",
+    )
+    with TestClient(_http_app(settings)) as client:
+        response = client.get("/.well-known/oauth-protected-resource/mcp")
+
+    assert response.status_code == HTTP_OK
+    payload = response.json()
+    assert payload["resource"] == "https://nlm.example.test/mcp"
+    assert payload["authorization_servers"] == ["https://nlm.example.test"]
 
 
 def test_openapi_tool_action_invokes_mcp_tool() -> None:

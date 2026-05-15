@@ -63,7 +63,7 @@ async def _openapi_schema(request: Request) -> JSONResponse:
     settings = getattr(request.app.state, "settings", None)
     if not isinstance(settings, Settings):
         settings = Settings()
-    base_url = settings.base_url or str(request.base_url).rstrip("/")
+    base_url = (settings.base_url or str(request.base_url).rstrip("/")).rstrip("/")
     schema["servers"] = [{"url": base_url, "description": "NotebookLM MCP Server"}]
     if settings.auth_mode is AuthMode.TOKEN:
         schema["security"] = [{"BearerAuth": []}]
@@ -75,7 +75,7 @@ async def _ai_plugin_manifest(request: Request) -> JSONResponse:
     settings = getattr(request.app.state, "settings", None)
     if not isinstance(settings, Settings):
         settings = Settings()
-    base_url = settings.base_url or str(request.base_url).rstrip("/")
+    base_url = (settings.base_url or str(request.base_url)).rstrip("/")
     auth: dict[str, str] = {"type": "none"}
     if settings.auth_mode is AuthMode.TOKEN:
         auth = {"type": "service_http", "authorization_type": "bearer"}
@@ -106,10 +106,12 @@ async def _oauth_protected_resource_metadata(request: Request) -> JSONResponse:
     settings = getattr(request.app.state, "settings", None)
     if not isinstance(settings, Settings):
         settings = Settings()
-    base_url = settings.base_url or str(request.base_url).rstrip("/")
+    base_url = (settings.base_url or str(request.base_url)).rstrip("/")
+    resource_path = str(request.path_params.get("resource_path", "")).strip("/")
+    resource = f"{base_url}/{resource_path}" if resource_path else base_url
     return JSONResponse(
         {
-            "resource": base_url,
+            "resource": resource,
             "authorization_servers": [base_url],
             "bearer_methods_supported": ["header"],
             "resource_documentation": f"{base_url}/openapi.json",
@@ -121,7 +123,7 @@ async def _oauth_authorization_server_metadata(request: Request) -> JSONResponse
     settings = getattr(request.app.state, "settings", None)
     if not isinstance(settings, Settings):
         settings = Settings()
-    base_url = settings.base_url or str(request.base_url).rstrip("/")
+    base_url = (settings.base_url or str(request.base_url)).rstrip("/")
     return JSONResponse(
         {
             "issuer": base_url,
@@ -171,6 +173,12 @@ def _http_app(settings: Settings | None = None) -> Starlette:
     web_app.router.routes.append(Route("/.well-known/ai-plugin.json", _ai_plugin_manifest))
     web_app.router.routes.append(
         Route("/.well-known/oauth-protected-resource", _oauth_protected_resource_metadata)
+    )
+    web_app.router.routes.append(
+        Route(
+            "/.well-known/oauth-protected-resource/{resource_path:path}",
+            _oauth_protected_resource_metadata,
+        )
     )
     web_app.router.routes.append(
         Route("/.well-known/oauth-authorization-server", _oauth_authorization_server_metadata)

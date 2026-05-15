@@ -103,6 +103,8 @@ def _app(settings: Settings) -> Starlette:
         routes=[
             Route("/healthz", _ok),
             Route("/openapi.json", _ok),
+            Route("/.well-known/oauth-protected-resource/mcp", _ok),
+            Route("/.well-known/private", _ok),
             Route("/mcp", _ok, methods=["GET", "POST", "OPTIONS"]),
             Route("/echo", _echo_body, methods=["POST"]),
         ]
@@ -125,6 +127,50 @@ class TestAuthMiddleware:
 
         assert response.status_code == HTTP_OK
 
+    def test_well_known_subpaths_bypassed(self) -> None:
+        with TestClient(_app(_settings())) as client:
+            response = client.get("/.well-known/oauth-protected-resource/mcp")
+
+        assert response.status_code == HTTP_OK
+
+    def test_metadata_subpath_is_not_exempt_when_used_as_mcp_path(self) -> None:
+        settings = Settings(
+            auth_mode=AuthMode.TOKEN,
+            bearer_token=SecretStr("secret-token"),
+            http_path="/.well-known/oauth-protected-resource/mcp",
+        )
+
+        with TestClient(_app(settings)) as client:
+            missing = client.get("/.well-known/oauth-protected-resource/mcp")
+            valid = client.get(
+                "/.well-known/oauth-protected-resource/mcp",
+                headers={"Authorization": "Bearer secret-token"},
+            )
+
+        assert missing.status_code == HTTP_UNAUTHORIZED
+        assert valid.status_code == HTTP_OK
+
+    def test_metadata_subpath_stays_exempt_for_root_mcp_path(self) -> None:
+        settings = Settings(
+            auth_mode=AuthMode.TOKEN,
+            bearer_token=SecretStr("secret-token"),
+            http_path="/",
+        )
+
+        with TestClient(_app(settings)) as client:
+            response = client.get("/.well-known/oauth-protected-resource/mcp")
+
+        assert response.status_code == HTTP_OK
+
+    def test_path_matcher_handles_root_prefix(self) -> None:
+        assert AuthMiddleware._path_matches("/anything", "/") is True
+
+    def test_unrelated_well_known_subpaths_require_auth(self) -> None:
+        with TestClient(_app(_settings())) as client:
+            response = client.get("/.well-known/private")
+
+        assert response.status_code == HTTP_UNAUTHORIZED
+
     def test_auth_mode_none_always_passes(self) -> None:
         settings = Settings(auth_mode=AuthMode.NONE)
 
@@ -142,6 +188,55 @@ class TestAuthMiddleware:
         assert missing.json()["error"] == "unauthorized"
         assert missing.headers["www-authenticate"] == 'Bearer realm="nlm-mcp"'
         assert valid.status_code == HTTP_OK
+
+    def test_mcp_unauthorized_includes_resource_metadata_when_base_url_set(self) -> None:
+        settings = Settings(
+            auth_mode=AuthMode.TOKEN,
+            bearer_token=SecretStr("secret-token"),
+            base_url="https://nlm.example.test",
+        )
+
+        with TestClient(_app(settings)) as client:
+            response = client.get("/mcp")
+
+        assert response.status_code == HTTP_UNAUTHORIZED
+        assert response.headers["www-authenticate"] == (
+            'Bearer realm="nlm-mcp", '
+            'resource_metadata="https://nlm.example.test/.well-known/oauth-protected-resource/mcp"'
+        )
+
+    def test_resource_metadata_url_only_matches_configured_http_path_boundary(self) -> None:
+        settings = Settings(
+            auth_mode=AuthMode.TOKEN,
+            bearer_token=SecretStr("secret-token"),
+            base_url="https://nlm.example.test",
+            http_path="/mcp",
+        )
+        middleware = AuthMiddleware(_app(Settings(auth_mode=AuthMode.NONE)), settings=settings)
+
+        assert middleware._resource_metadata_url("/mcp") == (
+            "https://nlm.example.test/.well-known/oauth-protected-resource/mcp"
+        )
+        assert middleware._resource_metadata_url("/mcp/extra") == (
+            "https://nlm.example.test/.well-known/oauth-protected-resource/mcp/extra"
+        )
+        assert middleware._resource_metadata_url("/mcp_extra") is None
+
+    def test_resource_metadata_url_supports_root_http_path(self) -> None:
+        settings = Settings(
+            auth_mode=AuthMode.TOKEN,
+            bearer_token=SecretStr("secret-token"),
+            base_url="https://nlm.example.test/",
+            http_path="/",
+        )
+        middleware = AuthMiddleware(_app(Settings(auth_mode=AuthMode.NONE)), settings=settings)
+
+        assert middleware._resource_metadata_url("/") == (
+            "https://nlm.example.test/.well-known/oauth-protected-resource"
+        )
+        assert middleware._resource_metadata_url("/nested") == (
+            "https://nlm.example.test/.well-known/oauth-protected-resource/nested"
+        )
 
     def test_options_request_bypassed(self) -> None:
         with TestClient(_app(_settings())) as client:

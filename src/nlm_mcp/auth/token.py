@@ -27,12 +27,15 @@ class TokenValidator:
         return secrets.compare_digest(supplied, expected)
 
     @staticmethod
-    def unauthorized_response() -> JSONResponse:
+    def unauthorized_response(resource_metadata_url: str | None = None) -> JSONResponse:
         """Build the standard unauthorized response for token-auth failures."""
+        authenticate = 'Bearer realm="nlm-mcp"'
+        if resource_metadata_url:
+            authenticate = f'{authenticate}, resource_metadata="{resource_metadata_url}"'
         return JSONResponse(
             {"error": "unauthorized", "message": "Invalid or missing authentication token"},
             status_code=401,
-            headers={"WWW-Authenticate": 'Bearer realm="nlm-mcp"'},
+            headers={"WWW-Authenticate": authenticate},
         )
 
     def _expected_token(self) -> str:

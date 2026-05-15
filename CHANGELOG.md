@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.8] - 2026-05-15
+
+### Fixed
+
+- Added path-aware RFC 9728 protected-resource metadata at
+  `/.well-known/oauth-protected-resource/mcp` so hosted MCP clients can discover
+  authorization requirements for the Streamable HTTP endpoint.
+- Added a `resource_metadata` hint to `/mcp` bearer-token challenges when
+  `NLM_MCP_BASE_URL` is configured.
+- Fixed HTTP auth middleware receive handling so authenticated Streamable HTTP
+  requests cannot spin the event loop after the request body has been forwarded.
+
+### Documentation
+
+- Clarified ChatGPT remote MCP setup: use a clean `/mcp` URL and configure bearer
+  or OAuth authentication in the client instead of relying on `?token=` URLs.
+- Added exact GitHub OAuth App registration values for hosted deployments.
+
 ## [1.0.7] - 2026-05-14
 
 ### Fixed

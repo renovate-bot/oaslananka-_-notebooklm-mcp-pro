@@ -81,14 +81,20 @@ The server also accepts a query token for simple hosted setups:
 https://your-server.example.com/mcp?token=replace-with-generated-token
 ```
 
+Prefer the `Authorization` header for hosted clients. Some remote MCP clients
+strip query strings while probing `/.well-known/*` discovery endpoints, so a URL
+token can work in `curl` and still fail during connector creation.
+
 ## GitHub OAuth
 
 Create a GitHub OAuth App:
 
 1. Open GitHub Developer settings.
 2. Create a new OAuth App.
-3. Set the callback URL to `https://your-server.example.com/auth/callback`.
-4. Copy the client ID and client secret.
+3. Use `NotebookLM MCP` as the application name.
+4. Set the homepage URL to `https://your-server.example.com`.
+5. Set the callback URL to `https://your-server.example.com/auth/callback`.
+6. Copy the client ID and client secret.
 
 Configure the server:
 
@@ -109,6 +115,18 @@ https://your-server.example.com/auth/login
 ```
 
 The callback stores a 24-hour local session token in SQLite and sends it as a secure, HTTP-only cookie when the public URL uses HTTPS.
+
+For the hosted MCP URL itself, keep the clean endpoint:
+
+```text
+https://your-server.example.com/mcp
+```
+
+Clients that support OAuth should discover:
+
+```text
+https://your-server.example.com/.well-known/oauth-protected-resource/mcp
+```
 
 ## Troubleshooting
 

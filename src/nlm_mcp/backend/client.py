@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import stat
 from collections.abc import Awaitable, Callable, Iterator
 from contextlib import contextmanager, suppress
 from dataclasses import dataclass
@@ -71,11 +72,43 @@ def _notebooklm_default_auth_file() -> Path:
     return storage_path
 
 
+AuthFileState = Literal["missing", "readable", "unreadable"]
+
+
+def _auth_file_state(path: Path) -> AuthFileState:
+    try:
+        mode = path.stat().st_mode
+    except FileNotFoundError:
+        return "missing"
+    except OSError:
+        return "unreadable"
+    if not stat.S_ISREG(mode):
+        return "unreadable"
+    return "readable" if os.access(path, os.R_OK) else "unreadable"
+
+
 def _newest_existing_auth_file(*paths: Path) -> Path | None:
-    existing_paths = [path for path in paths if path.exists()]
-    if not existing_paths:
-        return None
-    return max(existing_paths, key=lambda path: path.stat().st_mtime)
+    newest: Path | None = None
+    newest_mtime = float("-inf")
+    for path in paths:
+        if _auth_file_state(path) != "readable":
+            continue
+        try:
+            mtime = path.stat().st_mtime
+        except OSError:
+            continue
+        if mtime > newest_mtime:
+            newest_mtime = mtime
+            newest = path
+    return newest
+
+
+def _raise_unreadable_auth_file(path: Path) -> None:
+    raise BackendAuthError(
+        "NotebookLM auth file is not readable by the server process.",
+        error_code=-32002,
+        data={"auth_source": "file", "path": str(path)},
+    )
 
 
 @dataclass(frozen=True)
@@ -99,9 +132,15 @@ def resolve_auth_source(settings: Settings) -> AuthSource:
         newest_auth_file = _newest_existing_auth_file(notebooklm_default_auth_file, auth_file)
         if newest_auth_file is not None:
             return AuthSource(kind="file", value=str(newest_auth_file))
+        for candidate in (notebooklm_default_auth_file, auth_file):
+            if _auth_file_state(candidate) == "unreadable":
+                _raise_unreadable_auth_file(candidate)
         return AuthSource(kind="default", value=str(notebooklm_default_auth_file))
-    if auth_file.exists():
+    auth_file_state = _auth_file_state(auth_file)
+    if auth_file_state == "readable":
         return AuthSource(kind="file", value=str(auth_file))
+    if auth_file_state == "unreadable":
+        _raise_unreadable_auth_file(auth_file)
     raise BackendAuthError(
         "NotebookLM auth file not found.",
         error_code=-32002,

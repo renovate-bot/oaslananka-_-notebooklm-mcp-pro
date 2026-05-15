@@ -6,6 +6,16 @@ The canonical changelog lives at:
 https://github.com/oaslananka/notebooklm-mcp-pro/blob/main/CHANGELOG.md
 ```
 
+## 1.0.13
+
+Patch release that forwards NotebookLM auth settings through Docker Compose and
+reports unreadable Docker-mounted auth files as sanitized authentication errors.
+
+## 1.0.12
+
+Patch release that makes the Docker runtime create appuser-owned data and config
+directories before starting the server.
+
 ## 1.0.7
 
 Patch release that suppresses external HTTP client INFO logs so expired

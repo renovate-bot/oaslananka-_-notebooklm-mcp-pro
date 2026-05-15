@@ -25,11 +25,37 @@ docker run --rm -p 8080:8080 \
   notebooklm-mcp-pro:dev
 ```
 
+The runtime container runs as UID `10001`. If the host auth file is `0600`
+under your user account, grant read access to that UID or use inline JSON
+instead:
+
+```bash
+setfacl -m u:10001:rx "$HOME/.config" "$HOME/.config/nlm-mcp"
+setfacl -m u:10001:r "$HOME/.config/nlm-mcp/notebooklm_auth.json"
+```
+
+For hosted deployments, inline JSON is usually simpler because it avoids bind
+mount permissions:
+
+```bash
+export NLM_MCP_NOTEBOOKLM_AUTH_JSON="$(cat "$HOME/.config/nlm-mcp/notebooklm_auth.json")"
+docker run --rm -p 8080:8080 \
+  -e NLM_MCP_TRANSPORT=http \
+  -e NLM_MCP_AUTH_MODE=github-oauth \
+  -e NLM_MCP_NOTEBOOKLM_AUTH_JSON \
+  notebooklm-mcp-pro:dev
+```
+
 ## Docker Compose
 
 ```bash
 docker compose -f deploy/docker-compose.yml up --build
 ```
+
+`deploy/docker-compose.yml` forwards both `NLM_MCP_NOTEBOOKLM_AUTH_FILE` and
+`NLM_MCP_NOTEBOOKLM_AUTH_JSON`. Use `NLM_AUTH_FILE` only for the host mount
+source path; use `NLM_MCP_NOTEBOOKLM_AUTH_FILE` for the path seen by the
+application inside the container.
 
 ## Health check
 

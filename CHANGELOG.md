@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.13] - 2026-05-15
+
+### Fixed
+
+- Docker Compose now forwards NotebookLM auth file, inline auth JSON, and default
+  language environment variables into the container.
+- `nlm-mcp doctor` now reports unreadable NotebookLM auth files as sanitized
+  authentication errors instead of raising a `PermissionError` traceback.
+
+### Documentation
+
+- Documented Docker auth-file permissions for the non-root runtime user and the
+  inline JSON deployment path for hosted environments.
+
 ## [1.0.12] - 2026-05-15
 
 ### Fixed

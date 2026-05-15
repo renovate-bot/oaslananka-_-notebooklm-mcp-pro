@@ -23,7 +23,7 @@ LABEL org.opencontainers.image.title="notebooklm-mcp-pro" \
       org.opencontainers.image.description="Production-grade MCP server for Google NotebookLM" \
       org.opencontainers.image.source="https://github.com/oaslananka/notebooklm-mcp-pro" \
       org.opencontainers.image.licenses="MIT" \
-      org.opencontainers.image.version="1.0.12"
+      org.opencontainers.image.version="1.0.13"
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \

@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import os
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from notebooklm import RateLimitError
 from pydantic import SecretStr
@@ -699,6 +699,51 @@ def test_resolve_auth_source_uses_existing_file(tmp_path: Path) -> None:
     assert source == AuthSource(kind="file", value=str(auth_file))
 
 
+def test_auth_file_state_reports_missing_readable_directory_and_os_errors(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    class PermissionDeniedPath:
+        def stat(self) -> object:
+            raise PermissionError("denied")
+
+    auth_file = tmp_path / "storage.json"
+    auth_file.write_text('{"cookies": []}', encoding="utf-8")
+
+    assert client_module._auth_file_state(tmp_path / "missing.json") == "missing"
+    assert client_module._auth_file_state(auth_file) == "readable"
+    assert client_module._auth_file_state(tmp_path) == "unreadable"
+    assert client_module._auth_file_state(cast(Path, PermissionDeniedPath())) == "unreadable"
+
+    monkeypatch.setattr("nlm_mcp.backend.client.os.access", lambda path, mode: False)
+    assert client_module._auth_file_state(auth_file) == "unreadable"
+
+
+def test_newest_existing_auth_file_ignores_stat_races(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    newest = tmp_path / "newest.json"
+    racing = tmp_path / "racing.json"
+    newest.write_text('{"cookies": [{"name": "active"}]}', encoding="utf-8")
+    racing.write_text('{"cookies": [{"name": "racing"}]}', encoding="utf-8")
+
+    def fake_auth_file_state(path: Path) -> str:
+        return "readable"
+
+    original_stat = Path.stat
+
+    def fake_stat(path: Path, *, follow_symlinks: bool = True) -> os.stat_result:
+        if path == racing:
+            raise PermissionError("permission changed")
+        return original_stat(path, follow_symlinks=follow_symlinks)
+
+    monkeypatch.setattr(client_module, "_auth_file_state", fake_auth_file_state)
+    monkeypatch.setattr(Path, "stat", fake_stat)
+
+    assert client_module._newest_existing_auth_file(racing, newest) == newest
+
+
 def test_resolve_auth_source_uses_notebooklm_default_when_project_default_missing(
     tmp_path: Path,
     monkeypatch: MonkeyPatch,
@@ -806,6 +851,44 @@ def test_resolve_auth_source_rejects_missing_file(tmp_path: Path) -> None:
         resolve_auth_source(Settings(notebooklm_auth_file=tmp_path / "missing.json"))
 
     assert exc_info.value.error_code == AUTH_ERROR_CODE
+
+
+def test_resolve_auth_source_rejects_unreadable_custom_file(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    auth_file = tmp_path / "notebooklm_auth.json"
+    monkeypatch.setattr(client_module, "_auth_file_state", lambda path: "unreadable")
+
+    with raises(BackendAuthError) as exc_info:
+        resolve_auth_source(Settings(notebooklm_auth_file=auth_file))
+
+    assert exc_info.value.error_code == AUTH_ERROR_CODE
+    assert "not readable" in exc_info.value.safe_message
+    assert exc_info.value.data == {"auth_source": "file", "path": str(auth_file)}
+
+
+def test_resolve_auth_source_rejects_unreadable_default_file(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    project_default_path = tmp_path / "project" / "notebooklm_auth.json"
+    cli_default_path = tmp_path / "profiles" / "default" / "storage_state.json"
+
+    def fake_auth_file_state(path: Path) -> str:
+        if path == project_default_path:
+            return "unreadable"
+        return "missing"
+
+    monkeypatch.setattr(client_module, "DEFAULT_NOTEBOOKLM_AUTH_FILE", project_default_path)
+    monkeypatch.setattr(client_module, "_notebooklm_default_auth_file", lambda: cli_default_path)
+    monkeypatch.setattr(client_module, "_auth_file_state", fake_auth_file_state)
+
+    with raises(BackendAuthError) as exc_info:
+        resolve_auth_source(Settings(notebooklm_auth_file=project_default_path))
+
+    assert exc_info.value.error_code == AUTH_ERROR_CODE
+    assert exc_info.value.data == {"auth_source": "file", "path": str(project_default_path)}
 
 
 async def test_default_client_factory_sets_notebooklm_auth_json_env(

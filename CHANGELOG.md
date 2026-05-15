@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.10] - 2026-05-15
+
+### Fixed
+
+- Removed the obsolete top-level Docker Compose `version` key so `docker compose`
+  deploys without deprecation warnings on current Compose releases.
+- `nlm-mcp login` now installs the Playwright Chromium browser binary before
+  launching the NotebookLM login flow.
+- The base package now includes the Playwright Python dependency so the documented
+  plain install path supports `nlm-mcp login`.
+
 ## [1.0.9] - 2026-05-15
 
 ### Fixed

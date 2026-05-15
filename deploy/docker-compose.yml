@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   nlm-mcp:
     image: ghcr.io/oaslananka/notebooklm-mcp-pro:latest

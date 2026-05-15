@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.12] - 2026-05-15
+
+### Fixed
+
+- Ensured the Docker runtime image creates appuser-owned NotebookLM MCP data and
+  config directories so OAuth session SQLite storage can be opened on fresh
+  named-volume deployments.
+
 ## [1.0.11] - 2026-05-15
 
 ### Added

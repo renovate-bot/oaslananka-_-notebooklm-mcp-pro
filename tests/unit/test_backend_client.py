@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import inspect
 import os
 from pathlib import Path
 from typing import Any, cast
@@ -11,7 +12,12 @@ from pytest import MonkeyPatch, raises
 from tenacity import wait_none
 
 import nlm_mcp.backend.client as client_module
-from nlm_mcp.backend.client import AuthSource, NotebookLMBackend, resolve_auth_source
+from nlm_mcp.backend.client import (
+    AuthSource,
+    NotebookLMBackend,
+    _list_notes_compat,
+    resolve_auth_source,
+)
 from nlm_mcp.backend.exceptions import (
     BackendAuthError,
     BackendRateLimitError,
@@ -434,6 +440,104 @@ async def test_backend_delegates_research_artifact_and_language_operations() -> 
     )
     assert "style" not in infographic_call[2]
     assert fake.settings.calls == [("get_output_language", ()), ("set_output_language", ("tr",))]
+
+
+async def test_backend_list_notes_supports_notebooklm_without_limit_parameter() -> None:
+    class NoLimitNotesAPI:
+        async def list(self, notebook_id: str) -> list[dict[str, str]]:
+            return [
+                {"id": "note-1", "notebook_id": notebook_id},
+                {"id": "note-2", "notebook_id": notebook_id},
+            ]
+
+    fake = FakeNotebookLMClient()
+    fake.notes = cast(Any, NoLimitNotesAPI())
+
+    async def factory(_settings: Settings) -> FakeNotebookLMClient:
+        return fake
+
+    backend = NotebookLMBackend(
+        Settings(),
+        client_factory=factory,
+        retry_wait_strategy=wait_none(),
+        retry_sleep=_no_sleep,
+    )
+
+    try:
+        assert await backend.list_notes("nb-1", limit=1) == [
+            {"id": "note-1", "notebook_id": "nb-1"}
+        ]
+    finally:
+        await backend.close()
+
+
+async def test_list_notes_compat_slices_non_list_iterables_without_limit_parameter() -> None:
+    class TupleNotesAPI:
+        async def list(self, notebook_id: str) -> tuple[dict[str, str], ...]:
+            return (
+                {"id": "note-1", "notebook_id": notebook_id},
+                {"id": "note-2", "notebook_id": notebook_id},
+            )
+
+    class Client:
+        notes = TupleNotesAPI()
+
+    assert await _list_notes_compat(Client(), "nb-1", limit=1) == [
+        {"id": "note-1", "notebook_id": "nb-1"}
+    ]
+
+
+async def test_list_notes_compat_rejects_negative_limits() -> None:
+    with raises(BackendValidationError) as exc_info:
+        await _list_notes_compat(object(), "nb-1", limit=-1)
+
+    assert exc_info.value.error_code == VALIDATION_ERROR_CODE
+    assert exc_info.value.data == {"limit": -1}
+
+
+async def test_list_notes_compat_short_circuits_zero_limits() -> None:
+    assert await _list_notes_compat(object(), "nb-1", limit=0) == []
+
+
+async def test_list_notes_compat_limits_async_iterables_without_limit_parameter() -> None:
+    async def notes_stream(notebook_id: str) -> Any:
+        for index in range(3):
+            yield {"id": f"note-{index + 1}", "notebook_id": notebook_id}
+
+    class AsyncIterableNotesAPI:
+        async def list(self, notebook_id: str) -> Any:
+            return notes_stream(notebook_id)
+
+    class Client:
+        notes = AsyncIterableNotesAPI()
+
+    assert await _list_notes_compat(Client(), "nb-1", limit=2) == [
+        {"id": "note-1", "notebook_id": "nb-1"},
+        {"id": "note-2", "notebook_id": "nb-1"},
+    ]
+
+
+async def test_list_notes_compat_handles_uninspectable_non_iterable_results(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    class NotesEnvelope:
+        pass
+
+    envelope = NotesEnvelope()
+
+    class EnvelopeNotesAPI:
+        async def list(self, _notebook_id: str) -> NotesEnvelope:
+            return envelope
+
+    class Client:
+        notes = EnvelopeNotesAPI()
+
+    def fail_signature(_callable: object) -> None:
+        raise ValueError("signature unavailable")
+
+    monkeypatch.setattr(inspect, "signature", fail_signature)
+
+    assert await _list_notes_compat(Client(), "nb-1", limit=1) is envelope
 
 
 async def test_backend_normalizes_and_validates_artifact_download_formats() -> None:

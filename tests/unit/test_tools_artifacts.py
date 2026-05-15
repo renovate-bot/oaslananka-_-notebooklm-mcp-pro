@@ -226,6 +226,21 @@ async def test_generation_tools_submit_and_track_tasks(tmp_path: Path) -> None:
     assert mind_map.data["task_id"] == "mind-1"
 
 
+async def test_quiz_like_validation_errors_are_sanitized(tmp_path: Path) -> None:
+    backend = FakeArtifactBackend()
+    async with Client(_server(tmp_path, backend)) as client:
+        with pytest.raises(ToolError, match="quantity"):
+            await client.call_tool(
+                "generate_quiz",
+                {"notebook_id": "nb-1", "quantity": "short"},
+            )
+        with pytest.raises(ToolError, match="quantity"):
+            await client.call_tool(
+                "generate_flashcards",
+                {"notebook_id": "nb-1", "quantity": "short"},
+            )
+
+
 async def test_artifact_lifecycle_tools_and_resources(tmp_path: Path) -> None:
     backend = FakeArtifactBackend()
     async with Client(_server(tmp_path, backend)) as client:

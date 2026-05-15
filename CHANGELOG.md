@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.17] - 2026-05-15
+
+### Fixed
+
+- Made `chat.list_notes` compatible with `notebooklm-py` releases whose
+  `NotesAPI.list()` method does not accept a `limit` keyword argument.
+- Sanitized invalid quiz/flashcard quantity validation failures through the
+  normal MCP `ToolError` path instead of allowing FastMCP to log a validation
+  traceback before tool-level error handling runs.
+
 ## [1.0.16] - 2026-05-15
 
 ### Fixed

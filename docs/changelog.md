@@ -6,6 +6,12 @@ The canonical changelog lives at:
 https://github.com/oaslananka/notebooklm-mcp-pro/blob/main/CHANGELOG.md
 ```
 
+## 1.0.17
+
+Patch release that fixes `chat.list_notes` against `notebooklm-py` versions
+without a `limit` parameter on note listing and routes invalid quiz/flashcard
+quantity values through sanitized MCP tool errors.
+
 ## 1.0.16
 
 Patch release that exposes `/.well-known/openid-configuration` without HTTP

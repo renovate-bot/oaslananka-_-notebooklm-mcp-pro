@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import asyncio
+import inspect
 import os
 import stat
-from collections.abc import Awaitable, Callable, Iterator
+from collections.abc import AsyncIterable, Awaitable, Callable, Iterator
 from contextlib import contextmanager, suppress
 from dataclasses import dataclass
+from itertools import islice
 from pathlib import Path
 from typing import Any, Literal, TypeVar
 
@@ -184,6 +186,46 @@ async def create_notebooklm_client(settings: Settings, *, timeout: float = 30.0)
     if auth_source.kind == "default":
         return await NotebookLMClient.from_storage(path=None, timeout=timeout)
     return await NotebookLMClient.from_storage(path=auth_source.value, timeout=timeout)
+
+
+async def _limit_notes_result(notes: Any, *, limit: int) -> Any:
+    if isinstance(notes, list):
+        return notes[:limit]
+    if isinstance(notes, tuple):
+        return list(notes[:limit])
+    if isinstance(notes, AsyncIterable):
+        limited: list[Any] = []
+        async for note in notes:
+            limited.append(note)
+            if len(limited) >= limit:
+                break
+        return limited
+    try:
+        return list(islice(notes, limit))
+    except TypeError:
+        return notes
+
+
+async def _list_notes_compat(client: Any, notebook_id: str, *, limit: int) -> Any:
+    """Call notebooklm-py note listing across versions with and without `limit`."""
+    if limit < 0:
+        raise BackendValidationError(
+            "Invalid notes limit.",
+            error_code=-32602,
+            data={"limit": limit},
+        )
+    if limit == 0:
+        return []
+    list_notes = client.notes.list
+    try:
+        signature = inspect.signature(list_notes)
+    except (TypeError, ValueError):
+        signature = None
+    if signature is not None and "limit" in signature.parameters:
+        result = await list_notes(notebook_id, limit=limit)
+    else:
+        result = await _limit_notes_result(await list_notes(notebook_id), limit=limit)
+    return result
 
 
 class NotebookLMBackend:
@@ -541,7 +583,7 @@ class NotebookLMBackend:
         """List saved NotebookLM notes for a notebook."""
         return await self._call(
             "chat.list_notes",
-            lambda client: client.notes.list(notebook_id, limit=limit),
+            lambda client: _list_notes_compat(client, notebook_id, limit=limit),
         )
 
     async def start_research(

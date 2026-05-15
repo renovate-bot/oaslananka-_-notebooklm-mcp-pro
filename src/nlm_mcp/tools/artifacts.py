@@ -269,19 +269,17 @@ def register_artifact_tools(  # noqa: PLR0915
         difficulty: str = "medium",
     ) -> dict[str, Any]:
         """Generate a quiz and return a task id."""
-        payload = QuizLikeInput.model_validate(
-            {
-                "notebook_id": notebook_id,
-                "source_ids": source_ids,
-                "instructions": instructions,
-                "quantity": quantity,
-                "difficulty": difficulty,
-            }
-        )
-        return await run_tool(
-            "generate.quiz",
-            payload,
-            lambda: _submit_task(
+        raw_payload = {
+            "notebook_id": notebook_id,
+            "source_ids": source_ids,
+            "instructions": instructions,
+            "quantity": quantity,
+            "difficulty": difficulty,
+        }
+
+        async def operation() -> dict[str, Any]:
+            payload = QuizLikeInput.model_validate(raw_payload)
+            return await _submit_task(
                 store,
                 payload.notebook_id,
                 "quiz",
@@ -292,7 +290,12 @@ def register_artifact_tools(  # noqa: PLR0915
                     quantity=payload.quantity,
                     difficulty=payload.difficulty,
                 ),
-            ),
+            )
+
+        return await run_tool(
+            "generate.quiz",
+            raw_payload,
+            operation,
         )
 
     @server.tool(
@@ -308,19 +311,17 @@ def register_artifact_tools(  # noqa: PLR0915
         difficulty: str = "medium",
     ) -> dict[str, Any]:
         """Generate flashcards and return a task id."""
-        payload = QuizLikeInput.model_validate(
-            {
-                "notebook_id": notebook_id,
-                "source_ids": source_ids,
-                "instructions": instructions,
-                "quantity": quantity,
-                "difficulty": difficulty,
-            }
-        )
-        return await run_tool(
-            "generate.flashcards",
-            payload,
-            lambda: _submit_task(
+        raw_payload = {
+            "notebook_id": notebook_id,
+            "source_ids": source_ids,
+            "instructions": instructions,
+            "quantity": quantity,
+            "difficulty": difficulty,
+        }
+
+        async def operation() -> dict[str, Any]:
+            payload = QuizLikeInput.model_validate(raw_payload)
+            return await _submit_task(
                 store,
                 payload.notebook_id,
                 "flashcards",
@@ -331,7 +332,12 @@ def register_artifact_tools(  # noqa: PLR0915
                     quantity=payload.quantity,
                     difficulty=payload.difficulty,
                 ),
-            ),
+            )
+
+        return await run_tool(
+            "generate.flashcards",
+            raw_payload,
+            operation,
         )
 
     @server.tool(

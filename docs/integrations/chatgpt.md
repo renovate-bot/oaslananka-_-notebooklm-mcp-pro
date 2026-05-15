@@ -12,6 +12,10 @@ GET /openapi.json
 GET /.well-known/ai-plugin.json
 GET /.well-known/oauth-protected-resource
 GET /.well-known/oauth-protected-resource/mcp
+GET /.well-known/oauth-authorization-server
+GET /oauth/authorize
+POST /oauth/token
+POST /oauth/register
 POST /tools/{tool_name}
 POST /mcp
 ```
@@ -66,8 +70,11 @@ https://your-server.example.com/.well-known/oauth-protected-resource/mcp
 
 ## GitHub OAuth option
 
-For browser-based remote MCP access, run the server in GitHub OAuth mode and
-register a GitHub OAuth App:
+For hosted MCP clients that support OAuth 2.1 authorization-code + PKCE, run the
+server in GitHub OAuth mode. The server acts as a small authorization server for
+the MCP client and uses GitHub OAuth as the upstream identity provider.
+
+Register a GitHub OAuth App:
 
 | GitHub OAuth App field | Value |
 |---|---|
@@ -79,6 +86,7 @@ register a GitHub OAuth App:
 Then configure the server:
 
 ```bash
+export NLM_MCP_TRANSPORT=http
 export NLM_MCP_AUTH_MODE=github-oauth
 export NLM_MCP_BASE_URL=https://your-server.example.com
 export NLM_MCP_GITHUB_CLIENT_ID=your-client-id
@@ -93,11 +101,17 @@ Use this MCP server URL:
 https://your-server.example.com/mcp
 ```
 
-This GitHub OAuth mode is a browser-login flow that sets a secure session cookie.
-It is useful for browser-based MCP clients that can visit `/auth/login` before
-opening the MCP endpoint. It is not a full OAuth authorization server for ChatGPT
-token exchange. For ChatGPT remote MCP setup, use token mode and configure the
-client's bearer/API-key authentication field.
+The server publishes:
+
+```text
+https://your-server.example.com/.well-known/oauth-protected-resource/mcp
+https://your-server.example.com/.well-known/oauth-authorization-server
+```
+
+The OAuth bridge supports dynamic client registration, PKCE S256, authorization
+code exchange, and local bearer access tokens scoped to the protected MCP
+resource. Browser clients may still start directly at `/auth/login`; hosted MCP
+clients should start from the clean `/mcp` connector URL and follow discovery.
 
 ## Test prompt
 

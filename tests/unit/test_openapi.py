@@ -10,6 +10,7 @@ from nlm_mcp.config import AuthMode, Settings, TransportMode
 from nlm_mcp.openapi import OPENAPI_SCHEMA, TOOL_SPECS
 
 HTTP_OK = 200
+HTTP_NOT_FOUND = 404
 MIN_OPENAPI_PATHS = 20
 
 
@@ -123,7 +124,9 @@ def test_plugin_manifest_uses_auth_mode() -> None:
 def test_oauth_metadata_endpoints() -> None:
     settings = Settings(
         transport=TransportMode.HTTP,
-        auth_mode=AuthMode.NONE,
+        auth_mode=AuthMode.GITHUB_OAUTH,
+        github_client_id="client-id",
+        github_client_secret=SecretStr("secret"),
         base_url="https://nlm.example.test",
     )
     with TestClient(_http_app(settings)) as client:
@@ -132,15 +135,42 @@ def test_oauth_metadata_endpoints() -> None:
 
     assert protected.status_code == HTTP_OK
     assert protected.json()["resource"] == "https://nlm.example.test"
+    assert protected.json()["authorization_servers"] == ["https://nlm.example.test"]
     assert authorization.status_code == HTTP_OK
-    assert authorization.json()["authorization_endpoint"] == ("https://nlm.example.test/auth/login")
+    assert authorization.json()["authorization_endpoint"] == (
+        "https://nlm.example.test/oauth/authorize"
+    )
+    assert authorization.json()["token_endpoint"] == (
+        "https://nlm.example.test/oauth/token"  # noqa: S105
+    )
+    assert authorization.json()["registration_endpoint"] == (
+        "https://nlm.example.test/oauth/register"
+    )
+    assert "authorization_code" in authorization.json()["grant_types_supported"]
+    assert "S256" in authorization.json()["code_challenge_methods_supported"]
+    assert authorization.json()["token_endpoint_auth_methods_supported"] == ["none"]
+    assert authorization.json()["resource_parameter_supported"] is False
+
+
+def test_oauth_metadata_is_not_advertised_when_oauth_is_disabled() -> None:
+    settings = Settings(
+        transport=TransportMode.HTTP,
+        auth_mode=AuthMode.TOKEN,
+        bearer_token=SecretStr("token"),
+        base_url="https://nlm.example.test",
+    )
+    with TestClient(_http_app(settings)) as client:
+        response = client.get("/.well-known/oauth-authorization-server")
+
+    assert response.status_code == HTTP_NOT_FOUND
 
 
 def test_path_aware_oauth_protected_resource_metadata() -> None:
     settings = Settings(
         transport=TransportMode.HTTP,
-        auth_mode=AuthMode.TOKEN,
-        bearer_token=SecretStr("token"),
+        auth_mode=AuthMode.GITHUB_OAUTH,
+        github_client_id="client-id",
+        github_client_secret=SecretStr("secret"),
         base_url="https://nlm.example.test",
     )
     with TestClient(_http_app(settings)) as client:

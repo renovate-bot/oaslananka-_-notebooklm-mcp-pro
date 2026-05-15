@@ -140,6 +140,25 @@ Clients that support OAuth should discover:
 https://your-server.example.com/.well-known/oauth-protected-resource/mcp
 ```
 
+Hosted MCP clients that support OAuth 2.1 authorization-code + PKCE can start
+from the clean MCP endpoint:
+
+```text
+https://your-server.example.com/mcp
+```
+
+The server publishes authorization metadata at:
+
+```text
+https://your-server.example.com/.well-known/oauth-authorization-server
+```
+
+When `github-oauth` mode is enabled, the metadata advertises `/oauth/authorize`,
+`/oauth/token`, and `/oauth/register`. The `/oauth/authorize` endpoint redirects
+the user through GitHub, `/auth/callback` receives the GitHub response, and
+`/oauth/token` exchanges the returned local code for a bearer access token after
+PKCE verification.
+
 ## Troubleshooting
 
 | Symptom | Fix |

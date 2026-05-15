@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.11] - 2026-05-15
+
+### Added
+
+- Added a GitHub-backed OAuth authorization-code bridge for hosted MCP clients.
+  The server now exposes `/oauth/authorize`, `/oauth/token`, and
+  `/oauth/register` when `NLM_MCP_AUTH_MODE=github-oauth`.
+- Added PKCE S256 verification and local bearer-token issuance for ChatGPT-style
+  OAuth connector flows.
+- Docker Compose now forwards GitHub OAuth environment variables into the
+  container.
+
+### Changed
+
+- OAuth authorization-server metadata now advertises the real authorization,
+  token, and dynamic client registration endpoints instead of the GitHub callback
+  endpoint.
+
 ## [1.0.10] - 2026-05-15
 
 ### Fixed

@@ -252,6 +252,16 @@ Users start at:
 https://your-server.example.com/auth/login
 ```
 
+Hosted MCP clients that support OAuth 2.1 can start from the clean MCP endpoint:
+
+```text
+https://your-server.example.com/mcp
+```
+
+The server publishes OAuth discovery metadata and exposes `/oauth/authorize`,
+`/oauth/token`, and `/oauth/register` for authorization-code + PKCE flows backed
+by the configured GitHub OAuth App.
+
 ---
 
 ## 🔌 Integrations
@@ -555,6 +565,9 @@ docker pull ghcr.io/oaslananka/notebooklm-mcp-pro:latest
 | `GET /.well-known/oauth-authorization-server` | OAuth server metadata | exempt |
 | `GET /auth/login` | GitHub OAuth login | exempt |
 | `GET /auth/callback` | GitHub OAuth callback | exempt |
+| `GET /oauth/authorize` | MCP OAuth authorization endpoint | exempt |
+| `POST /oauth/token` | MCP OAuth token endpoint | exempt |
+| `POST /oauth/register` | Dynamic OAuth client registration | exempt |
 | `POST /tools/{tool_name}` | OpenAPI tool action | authenticated |
 | `/mcp` | Streamable HTTP MCP endpoint | authenticated |
 

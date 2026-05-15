@@ -112,14 +112,15 @@ async def _oauth_protected_resource_metadata(request: Request) -> JSONResponse:
     base_url = (settings.base_url or str(request.base_url)).rstrip("/")
     resource_path = str(request.path_params.get("resource_path", "")).strip("/")
     resource = f"{base_url}/{resource_path}" if resource_path else base_url
-    return JSONResponse(
-        {
-            "resource": resource,
-            "authorization_servers": [base_url],
-            "bearer_methods_supported": ["header"],
-            "resource_documentation": f"{base_url}/openapi.json",
-        }
-    )
+    metadata: dict[str, object] = {
+        "resource": resource,
+        "bearer_methods_supported": ["header"],
+        "resource_documentation": f"{base_url}/openapi.json",
+        "scopes_supported": settings.oauth_required_scopes.split(","),
+    }
+    if settings.auth_mode is AuthMode.GITHUB_OAUTH:
+        metadata["authorization_servers"] = [base_url]
+    return JSONResponse(metadata)
 
 
 async def _oauth_authorization_server_metadata(request: Request) -> JSONResponse:
@@ -127,14 +128,23 @@ async def _oauth_authorization_server_metadata(request: Request) -> JSONResponse
     if not isinstance(settings, Settings):
         settings = Settings()
     base_url = (settings.base_url or str(request.base_url)).rstrip("/")
+    if settings.auth_mode is not AuthMode.GITHUB_OAUTH:
+        return JSONResponse(
+            {"error": "not_found", "message": "OAuth authorization server is not enabled"},
+            status_code=404,
+        )
     return JSONResponse(
         {
             "issuer": base_url,
-            "authorization_endpoint": f"{base_url}/auth/login",
-            "token_endpoint": f"{base_url}/auth/callback",
+            "authorization_endpoint": f"{base_url}/oauth/authorize",
+            "token_endpoint": f"{base_url}/oauth/token",
+            "registration_endpoint": f"{base_url}/oauth/register",
             "response_types_supported": ["code"],
+            "grant_types_supported": ["authorization_code"],
+            "token_endpoint_auth_methods_supported": ["none"],
             "code_challenge_methods_supported": ["S256"],
             "scopes_supported": settings.oauth_required_scopes.split(","),
+            "resource_parameter_supported": False,
         }
     )
 
@@ -193,6 +203,11 @@ def _http_app(settings: Settings | None = None) -> Starlette:
         handler = GitHubOAuthHandler(resolved)
         web_app.router.routes.append(Route("/auth/login", handler.login))
         web_app.router.routes.append(Route("/auth/callback", handler.callback))
+        web_app.router.routes.append(Route("/oauth/authorize", handler.oauth_authorize))
+        web_app.router.routes.append(Route("/oauth/token", handler.oauth_token, methods=["POST"]))
+        web_app.router.routes.append(
+            Route("/oauth/register", handler.oauth_register, methods=["POST"])
+        )
     web_app.add_middleware(AuthMiddleware, settings=resolved)
     web_app.state.settings = resolved
     web_app.state.mcp_server = mcp_server

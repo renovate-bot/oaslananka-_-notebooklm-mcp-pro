@@ -1,5 +1,9 @@
+import importlib.util
 import json
 import runpy
+import subprocess
+import sys
+from pathlib import Path
 from typing import cast
 
 from pydantic import SecretStr
@@ -15,6 +19,7 @@ from nlm_mcp.config import AuthMode, Settings, TransportMode
 HTTP_OK = 200
 TEST_HTTP_PORT = 9999
 OVERRIDE_HTTP_PORT = 9100
+LOGIN_FAILURE_EXIT_CODE = 7
 
 
 def test_cli_prints_version() -> None:
@@ -63,29 +68,111 @@ def test_cli_transport_commands_are_present() -> None:
     assert serve.exit_code == 0
     assert "http configuration ok" in serve.stdout
     assert login.exit_code == 0
-    assert "notebooklm login" in login.stdout
+    assert "notebooklm login command wiring ok" in login.stdout
 
 
-def test_cli_login_prints_module_command_with_storage_path() -> None:
+def test_cli_login_dry_run_reports_missing_notebooklm(monkeypatch: MonkeyPatch) -> None:
+    original_find_spec = importlib.util.find_spec
+
+    def fake_find_spec(name: str, package: str | None = None) -> object | None:
+        if name == "notebooklm":
+            return None
+        return original_find_spec(name, package)
+
+    monkeypatch.setattr("nlm_mcp.cli.importlib.util.find_spec", fake_find_spec)
+
+    result = CliRunner().invoke(app, ["login", "--dry-run"])
+
+    assert result.exit_code == 1
+    assert "notebooklm module not found" in result.stderr
+
+
+def test_cli_login_dry_run_reports_missing_playwright(monkeypatch: MonkeyPatch) -> None:
+    original_find_spec = importlib.util.find_spec
+
+    def fake_find_spec(name: str, package: str | None = None) -> object | None:
+        if name == "playwright":
+            return None
+        return original_find_spec(name, package)
+
+    monkeypatch.setattr("nlm_mcp.cli.importlib.util.find_spec", fake_find_spec)
+
+    result = CliRunner().invoke(app, ["login", "--dry-run"])
+
+    assert result.exit_code == 1
+    assert "playwright module not found" in result.stderr
+
+
+def test_cli_login_runs_module_command_with_storage_path(
+    monkeypatch: MonkeyPatch, tmp_path: Path
+) -> None:
+    auth_file = tmp_path / "notebooklm_auth.json"
+    calls: list[tuple[list[str], bool]] = []
+    browser_command = [sys.executable, "-m", "playwright", "install", "chromium"]
+
+    def fake_run(command: list[str], *, check: bool) -> None:
+        calls.append((command, check))
+
+    monkeypatch.setenv("NLM_MCP_NOTEBOOKLM_AUTH_FILE", str(auth_file))
+    monkeypatch.setattr("nlm_mcp.cli.subprocess.run", fake_run)
+
     result = CliRunner().invoke(app, ["login"])
 
     assert result.exit_code == 0
-    assert "notebooklm login --storage" in result.stdout
-    assert "python -m notebooklm login --storage" in result.stdout
-    assert "uvx --from notebooklm-py notebooklm login --storage" in result.stdout
-    assert '--storage "' in result.stdout
-    assert "notebooklm_auth.json" in result.stdout
+    assert calls == [
+        (browser_command, True),
+        ([sys.executable, "-m", "notebooklm", "--storage", str(auth_file), "login"], True),
+    ]
+    assert "Ensuring Playwright Chromium is installed." in result.stdout
+    assert f"Auth storage: {auth_file}" in result.stdout
+    assert f"NotebookLM auth file ready: {auth_file}" in result.stdout
 
 
-def test_cli_login_ignores_incomplete_http_auth_environment(monkeypatch: MonkeyPatch) -> None:
+def test_cli_login_ignores_incomplete_http_auth_environment(
+    monkeypatch: MonkeyPatch, tmp_path: Path
+) -> None:
+    auth_file = tmp_path / "notebooklm_auth.json"
+    calls: list[list[str]] = []
+    browser_command = [sys.executable, "-m", "playwright", "install", "chromium"]
+
+    def fake_run(command: list[str], *, check: bool) -> None:
+        calls.append(command)
+
     monkeypatch.setenv("NLM_MCP_AUTH_MODE", "token")
     monkeypatch.delenv("NLM_MCP_BEARER_TOKEN", raising=False)
+    monkeypatch.setenv("NLM_MCP_NOTEBOOKLM_AUTH_FILE", str(auth_file))
+    monkeypatch.setattr("nlm_mcp.cli.subprocess.run", fake_run)
 
     result = CliRunner().invoke(app, ["login"])
 
     assert result.exit_code == 0
-    assert "notebooklm login --storage" in result.stdout
-    assert "python -m notebooklm login --storage" in result.stdout
+    assert calls == [
+        browser_command,
+        [sys.executable, "-m", "notebooklm", "--storage", str(auth_file), "login"],
+    ]
+
+
+def test_cli_login_returns_notebooklm_login_exit_code(
+    monkeypatch: MonkeyPatch, tmp_path: Path
+) -> None:
+    auth_file = tmp_path / "notebooklm_auth.json"
+    command = [sys.executable, "-m", "notebooklm", "--storage", str(auth_file), "login"]
+    browser_command = [sys.executable, "-m", "playwright", "install", "chromium"]
+    calls: list[list[str]] = []
+
+    def fake_run(received_command: list[str], *, check: bool) -> None:
+        calls.append(received_command)
+        assert check is True
+        if received_command == command:
+            raise subprocess.CalledProcessError(LOGIN_FAILURE_EXIT_CODE, received_command)
+
+    monkeypatch.setenv("NLM_MCP_NOTEBOOKLM_AUTH_FILE", str(auth_file))
+    monkeypatch.setattr("nlm_mcp.cli.subprocess.run", fake_run)
+
+    result = CliRunner().invoke(app, ["login"])
+
+    assert result.exit_code == LOGIN_FAILURE_EXIT_CODE
+    assert calls == [browser_command, command]
 
 
 def test_cli_serve_starts_uvicorn(monkeypatch: MonkeyPatch) -> None:

@@ -4,7 +4,7 @@
 
 - Python 3.11, 3.12, or 3.13.
 - A Google account with NotebookLM access.
-- A local NotebookLM auth file created by `python -m notebooklm login --storage <path>`, or an inline auth JSON value supplied through `NLM_MCP_NOTEBOOKLM_AUTH_JSON`.
+- A local NotebookLM auth file created by `nlm-mcp login`, or an inline auth JSON value supplied through `NLM_MCP_NOTEBOOKLM_AUTH_JSON`.
 - `uv`, `pipx`, `pip`, or Docker.
 
 The default auth file path is:
@@ -25,14 +25,26 @@ not exist.
 Run this once on a workstation with a browser:
 
 ```bash
-python -m notebooklm login --storage ~/.config/nlm-mcp/notebooklm_auth.json
+nlm-mcp login
+```
+
+`nlm-mcp login` calls `python -m notebooklm --storage <path> login`, so it works
+even when the dependency's `notebooklm` console script is not on `PATH`. The
+base package includes the browser-login dependency, so no separate browser extra
+is required for this command. It also installs the Playwright Chromium browser
+binary before launching the NotebookLM login page.
+
+To run the dependency CLI directly:
+
+```bash
+python -m notebooklm --storage ~/.config/nlm-mcp/notebooklm_auth.json login
 ```
 
 On Windows PowerShell:
 
 ```powershell
 New-Item -ItemType Directory -Force "$env:USERPROFILE\.config\nlm-mcp"
-python -m notebooklm login --storage "$env:USERPROFILE\.config\nlm-mcp\notebooklm_auth.json"
+python -m notebooklm --storage "$env:USERPROFILE\.config\nlm-mcp\notebooklm_auth.json" login
 ```
 
 ## Install with uv
@@ -44,17 +56,18 @@ uv tool install notebooklm-mcp-pro
 nlm-mcp --version
 ```
 
-For browser login support in the same environment:
+If you use `uv tool install`, the dependency CLI is isolated from your system
+Python. Create the NotebookLM auth file with the installed server command:
 
 ```bash
-uv tool install "notebooklm-mcp-pro[browser]"
+nlm-mcp login
 ```
 
-If you use `uv tool install`, the dependency CLI is isolated from your system
-Python. Create the NotebookLM auth file with `uvx`:
+If you specifically want to run the backend dependency CLI through `uvx`, include
+its browser extra:
 
 ```bash
-uvx --from notebooklm-py notebooklm login --storage ~/.config/nlm-mcp/notebooklm_auth.json
+uvx --from "notebooklm-py[browser]" notebooklm --storage ~/.config/nlm-mcp/notebooklm_auth.json login
 ```
 
 ## Install with pip
@@ -68,7 +81,7 @@ nlm-mcp --version
 
 ```bash
 pipx install notebooklm-mcp-pro
-pipx inject notebooklm-mcp-pro "notebooklm-mcp-pro[browser]"
+nlm-mcp login
 ```
 
 ## Install with Docker

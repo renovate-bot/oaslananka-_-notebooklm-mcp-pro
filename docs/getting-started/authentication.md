@@ -12,14 +12,26 @@ Stdio mode does not add an MCP auth layer because it is local to the caller proc
 Run:
 
 ```bash
-python -m notebooklm login --storage ~/.config/nlm-mcp/notebooklm_auth.json
+nlm-mcp login
+```
+
+The command starts the NotebookLM browser login and writes the configured auth
+file. It uses `python -m notebooklm` internally, so it does not depend on the
+`notebooklm` console script being available on `PATH`. The base package includes
+the browser-login dependency, and `nlm-mcp login` installs the Playwright
+Chromium browser binary before launching the NotebookLM login page.
+
+To run the backend CLI directly:
+
+```bash
+python -m notebooklm --storage ~/.config/nlm-mcp/notebooklm_auth.json login
 ```
 
 On Windows PowerShell:
 
 ```powershell
 New-Item -ItemType Directory -Force "$env:USERPROFILE\.config\nlm-mcp"
-python -m notebooklm login --storage "$env:USERPROFILE\.config\nlm-mcp\notebooklm_auth.json"
+python -m notebooklm --storage "$env:USERPROFILE\.config\nlm-mcp\notebooklm_auth.json" login
 ```
 
 The browser login writes a storage-state JSON file. By default, this project reads:
@@ -135,5 +147,5 @@ https://your-server.example.com/.well-known/oauth-protected-resource/mcp
 | `bearer_token required` | Set `NLM_MCP_BEARER_TOKEN` when `NLM_MCP_AUTH_MODE=token`. |
 | `github_client_id required` | Set GitHub OAuth variables before starting OAuth mode. |
 | Redirect URI mismatch | Make the GitHub app callback exactly match `NLM_MCP_BASE_URL + NLM_MCP_GITHUB_REDIRECT_PATH`. |
-| NotebookLM login expired | Re-run `python -m notebooklm login --storage <path>` and replace the mounted auth file. |
+| NotebookLM login expired | Re-run `python -m notebooklm --storage <path> login` and replace the mounted auth file. |
 | Container cannot read auth file | Mount the file read-only and ensure the container user can read it. |

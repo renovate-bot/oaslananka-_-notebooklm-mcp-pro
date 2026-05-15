@@ -4,7 +4,7 @@
 
 ```bash
 pip install notebooklm-mcp-pro
-python -m notebooklm login --storage ~/.config/nlm-mcp/notebooklm_auth.json
+nlm-mcp login
 nlm-mcp stdio
 ```
 

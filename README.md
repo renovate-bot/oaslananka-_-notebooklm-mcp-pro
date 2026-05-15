@@ -134,29 +134,41 @@ make test
 
 ## NotebookLM login
 
-Run the NotebookLM browser login once:
+Run the NotebookLM browser login once. This uses `python -m notebooklm` under
+the hood, so it works even when the dependency's `notebooklm` console script is
+not on `PATH`. The base package includes the browser-login dependency, so this
+works after a plain `pip install notebooklm-mcp-pro` or `uv tool install
+notebooklm-mcp-pro`. The command also installs the Playwright Chromium browser
+binary before it starts NotebookLM's login flow:
 
 ```bash
-notebooklm login --storage ~/.config/nlm-mcp/notebooklm_auth.json
+nlm-mcp login
+```
+
+The dependency package is named `notebooklm-py`, but the console script it
+installs is named `notebooklm`. If you want to run the backend CLI directly:
+
+```bash
+notebooklm --storage ~/.config/nlm-mcp/notebooklm_auth.json login
 ```
 
 On Windows PowerShell:
 
 ```powershell
 New-Item -ItemType Directory -Force "$env:USERPROFILE\.config\nlm-mcp"
-notebooklm login --storage "$env:USERPROFILE\.config\nlm-mcp\notebooklm_auth.json"
+notebooklm --storage "$env:USERPROFILE\.config\nlm-mcp\notebooklm_auth.json" login
 ```
 
 If the console script directory is not on `PATH`, use the module entrypoint:
 
 ```bash
-python -m notebooklm login --storage ~/.config/nlm-mcp/notebooklm_auth.json
+python -m notebooklm --storage ~/.config/nlm-mcp/notebooklm_auth.json login
 ```
 
 For isolated `uv` usage without a global install:
 
 ```bash
-uvx --from notebooklm-py notebooklm login --storage ~/.config/nlm-mcp/notebooklm_auth.json
+uvx --from "notebooklm-py[browser]" notebooklm --storage ~/.config/nlm-mcp/notebooklm_auth.json login
 ```
 
 The default auth file is:
@@ -194,7 +206,7 @@ Treat this JSON as a secret.
 
 ```bash
 pip install notebooklm-mcp-pro
-notebooklm login --storage ~/.config/nlm-mcp/notebooklm_auth.json
+nlm-mcp login
 nlm-mcp stdio
 ```
 

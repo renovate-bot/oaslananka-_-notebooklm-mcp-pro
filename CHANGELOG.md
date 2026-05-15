@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.9] - 2026-05-15
+
+### Fixed
+
+- `nlm-mcp login` now starts the NotebookLM browser-login flow directly through
+  `python -m notebooklm`, avoiding PATH issues on Windows where users may try
+  the package name `notebooklm-py` as a command.
+- Updated Docker image metadata so the OCI version label matches the released
+  package version.
+
+### Documentation
+
+- Documented `nlm-mcp login` as the primary NotebookLM authentication command
+  and clarified that `notebooklm-py` is the package name while `notebooklm` is
+  the dependency CLI command.
+
 ## [1.0.8] - 2026-05-15
 
 ### Fixed

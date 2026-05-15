@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import importlib.util
 import json
+import subprocess
+import sys
 from copy import deepcopy
 from typing import Annotated
 
@@ -231,20 +234,28 @@ def serve(
 def login(
     dry_run: bool = typer.Option(False, "--dry-run", help="Validate command wiring and exit."),
 ) -> None:
-    """Show the local NotebookLM browser-login command path."""
+    """Run the local NotebookLM browser-login flow."""
     if dry_run:
-        typer.echo("notebooklm login command path ok")
+        if importlib.util.find_spec("notebooklm") is None:
+            typer.echo("notebooklm module not found; install notebooklm-mcp-pro first.", err=True)
+            raise typer.Exit(1)
+        if importlib.util.find_spec("playwright") is None:
+            typer.echo("playwright module not found; install notebooklm-mcp-pro first.", err=True)
+            raise typer.Exit(1)
+        typer.echo("notebooklm login command wiring ok")
         return
     auth_file = Settings.from_overrides(auth_mode=AuthMode.NONE).notebooklm_auth_file.expanduser()
-    typer.echo(
-        "Use the NotebookLM CLI to create the auth file configured by "
-        "NLM_MCP_NOTEBOOKLM_AUTH_FILE:\n"
-        f'notebooklm login --storage "{auth_file}"\n\n'
-        "If the console script is not on PATH, use:\n"
-        f'python -m notebooklm login --storage "{auth_file}"\n\n'
-        "For isolated uv usage, use:\n"
-        f'uvx --from notebooklm-py notebooklm login --storage "{auth_file}"'
-    )
+    auth_file.parent.mkdir(parents=True, exist_ok=True)
+    browser_command = [sys.executable, "-m", "playwright", "install", "chromium"]
+    command = [sys.executable, "-m", "notebooklm", "--storage", str(auth_file), "login"]
+    typer.echo("Ensuring Playwright Chromium is installed.")
+    typer.echo(f"Starting NotebookLM browser login. Auth storage: {auth_file}")
+    try:
+        subprocess.run(browser_command, check=True)  # noqa: S603
+        subprocess.run(command, check=True)  # noqa: S603
+    except subprocess.CalledProcessError as exc:
+        raise typer.Exit(exc.returncode) from exc
+    typer.echo(f"NotebookLM auth file ready: {auth_file}")
 
 
 @app.command()

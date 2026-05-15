@@ -151,6 +151,7 @@ The server publishes authorization metadata at:
 
 ```text
 https://your-server.example.com/.well-known/oauth-authorization-server
+https://your-server.example.com/.well-known/openid-configuration
 ```
 
 When `github-oauth` mode is enabled, the metadata advertises `/oauth/authorize`,

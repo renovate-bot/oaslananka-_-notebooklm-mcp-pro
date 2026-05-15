@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.16] - 2026-05-15
+
+### Fixed
+
+- Exempted and served `GET /.well-known/openid-configuration` so ChatGPT and
+  Claude remote MCP OAuth discovery probes do not receive `401 Unauthorized`
+  before dynamic client registration.
+
 ## [1.0.15] - 2026-05-15
 
 ### Fixed

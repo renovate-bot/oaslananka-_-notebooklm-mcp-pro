@@ -6,6 +6,12 @@ The canonical changelog lives at:
 https://github.com/oaslananka/notebooklm-mcp-pro/blob/main/CHANGELOG.md
 ```
 
+## 1.0.16
+
+Patch release that exposes `/.well-known/openid-configuration` without HTTP
+authentication so ChatGPT and Claude remote MCP OAuth discovery probes can
+complete before dynamic client registration.
+
 ## 1.0.15
 
 Patch release that maps NotebookLM mixed-account cookie/account-routing

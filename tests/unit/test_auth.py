@@ -103,6 +103,7 @@ def _app(settings: Settings) -> Starlette:
         routes=[
             Route("/healthz", _ok),
             Route("/openapi.json", _ok),
+            Route("/.well-known/openid-configuration", _ok),
             Route("/.well-known/oauth-protected-resource/mcp", _ok),
             Route("/.well-known/private", _ok),
             Route("/mcp", _ok, methods=["GET", "POST", "OPTIONS"]),
@@ -130,6 +131,12 @@ class TestAuthMiddleware:
     def test_well_known_subpaths_bypassed(self) -> None:
         with TestClient(_app(_settings())) as client:
             response = client.get("/.well-known/oauth-protected-resource/mcp")
+
+        assert response.status_code == HTTP_OK
+
+    def test_openid_configuration_bypassed(self) -> None:
+        with TestClient(_app(_settings())) as client:
+            response = client.get("/.well-known/openid-configuration")
 
         assert response.status_code == HTTP_OK
 

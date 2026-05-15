@@ -578,6 +578,7 @@ docker pull ghcr.io/oaslananka/notebooklm-mcp-pro:latest
 | `GET /.well-known/ai-plugin.json` | plugin manifest | exempt |
 | `GET /.well-known/oauth-protected-resource` | OAuth resource metadata | exempt |
 | `GET /.well-known/oauth-authorization-server` | OAuth server metadata | exempt |
+| `GET /.well-known/openid-configuration` | OAuth/OIDC discovery compatibility metadata | exempt |
 | `GET /auth/login` | GitHub OAuth login | exempt |
 | `GET /auth/callback` | GitHub OAuth callback | exempt |
 | `GET /oauth/authorize` | MCP OAuth authorization endpoint | exempt |

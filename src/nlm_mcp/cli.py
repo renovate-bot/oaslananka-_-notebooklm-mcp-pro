@@ -244,6 +244,9 @@ def _http_app(settings: Settings | None = None) -> Starlette:
     web_app.router.routes.append(
         Route("/.well-known/oauth-authorization-server", _oauth_authorization_server_metadata)
     )
+    web_app.router.routes.append(
+        Route("/.well-known/openid-configuration", _oauth_authorization_server_metadata)
+    )
     web_app.router.routes.append(Route("/tools/{tool_name:path}", _tool_action, methods=["POST"]))
     if resolved.auth_mode is AuthMode.GITHUB_OAUTH:
         from nlm_mcp.auth.oauth import GitHubOAuthHandler  # noqa: PLC0415

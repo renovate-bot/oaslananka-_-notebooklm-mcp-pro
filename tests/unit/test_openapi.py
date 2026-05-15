@@ -132,6 +132,7 @@ def test_oauth_metadata_endpoints() -> None:
     with TestClient(_http_app(settings)) as client:
         protected = client.get("/.well-known/oauth-protected-resource")
         authorization = client.get("/.well-known/oauth-authorization-server")
+        openid = client.get("/.well-known/openid-configuration")
 
     assert protected.status_code == HTTP_OK
     assert protected.json()["resource"] == "https://nlm.example.test"
@@ -150,6 +151,9 @@ def test_oauth_metadata_endpoints() -> None:
     assert "S256" in authorization.json()["code_challenge_methods_supported"]
     assert authorization.json()["token_endpoint_auth_methods_supported"] == ["none"]
     assert authorization.json()["resource_parameter_supported"] is False
+    assert openid.status_code == HTTP_OK
+    assert openid.json()["issuer"] == "https://nlm.example.test"
+    assert openid.json()["authorization_endpoint"] == ("https://nlm.example.test/oauth/authorize")
 
 
 def test_oauth_metadata_is_not_advertised_when_oauth_is_disabled() -> None:
@@ -161,8 +165,10 @@ def test_oauth_metadata_is_not_advertised_when_oauth_is_disabled() -> None:
     )
     with TestClient(_http_app(settings)) as client:
         response = client.get("/.well-known/oauth-authorization-server")
+        openid = client.get("/.well-known/openid-configuration")
 
     assert response.status_code == HTTP_NOT_FOUND
+    assert openid.status_code == HTTP_NOT_FOUND
 
 
 def test_path_aware_oauth_protected_resource_metadata() -> None:

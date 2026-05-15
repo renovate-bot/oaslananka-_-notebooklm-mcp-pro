@@ -25,6 +25,7 @@ class AuthMiddleware:
             "/openapi.json",
             "/.well-known/ai-plugin.json",
             "/.well-known/oauth-authorization-server",
+            "/.well-known/openid-configuration",
         }
     )
 

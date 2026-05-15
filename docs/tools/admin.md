@@ -26,3 +26,4 @@ The HTTP app also serves:
 - `GET /.well-known/ai-plugin.json`
 - `GET /.well-known/oauth-protected-resource`
 - `GET /.well-known/oauth-authorization-server`
+- `GET /.well-known/openid-configuration`

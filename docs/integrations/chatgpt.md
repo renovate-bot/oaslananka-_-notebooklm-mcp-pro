@@ -13,6 +13,7 @@ GET /.well-known/ai-plugin.json
 GET /.well-known/oauth-protected-resource
 GET /.well-known/oauth-protected-resource/mcp
 GET /.well-known/oauth-authorization-server
+GET /.well-known/openid-configuration
 GET /oauth/authorize
 POST /oauth/token
 POST /oauth/register
@@ -106,6 +107,7 @@ The server publishes:
 ```text
 https://your-server.example.com/.well-known/oauth-protected-resource/mcp
 https://your-server.example.com/.well-known/oauth-authorization-server
+https://your-server.example.com/.well-known/openid-configuration
 ```
 
 The OAuth bridge supports dynamic client registration, PKCE S256, authorization

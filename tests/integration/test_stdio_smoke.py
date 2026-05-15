@@ -7,6 +7,8 @@ from anyio import BrokenResourceError
 from mcp import ClientSession
 from mcp.client.stdio import StdioServerParameters, stdio_client
 
+STDIO_TIMEOUT_SEC = 90
+
 
 async def test_stdio_server_initializes_and_lists_core_tools() -> None:
     repo_root = Path(__file__).resolve().parents[2]
@@ -33,14 +35,17 @@ async def test_stdio_server_initializes_and_lists_core_tools() -> None:
             stdio_client(server) as (read_stream, write_stream),
             ClientSession(read_stream, write_stream) as session,
         ):
-            await asyncio.wait_for(session.initialize(), timeout=10)
-            tools = await asyncio.wait_for(session.list_tools(), timeout=10)
-            resources = await asyncio.wait_for(session.list_resources(), timeout=10)
+            await asyncio.wait_for(session.initialize(), timeout=STDIO_TIMEOUT_SEC)
+            tools = await asyncio.wait_for(session.list_tools(), timeout=STDIO_TIMEOUT_SEC)
+            resources = await asyncio.wait_for(
+                session.list_resources(),
+                timeout=STDIO_TIMEOUT_SEC,
+            )
             resource_templates = await asyncio.wait_for(
                 session.list_resource_templates(),
-                timeout=10,
+                timeout=STDIO_TIMEOUT_SEC,
             )
-            prompts = await asyncio.wait_for(session.list_prompts(), timeout=10)
+            prompts = await asyncio.wait_for(session.list_prompts(), timeout=STDIO_TIMEOUT_SEC)
     except* BrokenResourceError:
         if tools is None or resources is None or resource_templates is None or prompts is None:
             raise

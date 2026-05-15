@@ -70,6 +70,33 @@ def _looks_like_notebooklm_auth_failure(exc: Exception) -> bool:
     )
 
 
+def _looks_like_account_routing_failure(exc: Exception) -> bool:
+    message = str(exc).lower()
+    return (
+        "account-routing mismatch" in message
+        or "multiple google accounts signed in" in message
+        or "request defaults to account index 0" in message
+    )
+
+
+def _map_client_error(exc: Exception, *, account_routing_failure: bool) -> BackendError:
+    if account_routing_failure:
+        return BackendAuthError(
+            (
+                "Authentication failed. Recreate the NotebookLM auth storage with the intended "
+                "Google account; mixed-account cookies can route NotebookLM writes to the wrong "
+                "account."
+            ),
+            error_code=-32002,
+            data=_base_data(exc),
+        )
+    return BackendValidationError(
+        "NotebookLM client error.",
+        error_code=-32602,
+        data=_base_data(exc),
+    )
+
+
 def map_backend_exception(exc: Exception) -> BackendError:
     """Map notebooklm-py and transport exceptions to sanitized backend errors."""
     if isinstance(exc, BackendError):
@@ -139,11 +166,8 @@ def map_backend_exception(exc: Exception) -> BackendError:
             data=_base_data(exc),
         )
     elif isinstance(exc, ClientError):
-        mapped = BackendValidationError(
-            "NotebookLM client error.",
-            error_code=-32602,
-            data=_base_data(exc),
-        )
+        is_account_routing_failure = _looks_like_account_routing_failure(exc)
+        mapped = _map_client_error(exc, account_routing_failure=is_account_routing_failure)
     elif isinstance(exc, NotebookLMError):
         mapped = BackendUnexpectedError(
             "NotebookLM backend request failed.",

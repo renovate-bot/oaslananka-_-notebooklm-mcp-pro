@@ -167,4 +167,5 @@ PKCE verification.
 | `github_client_id required` | Set GitHub OAuth variables before starting OAuth mode. |
 | Redirect URI mismatch | Make the GitHub app callback exactly match `NLM_MCP_BASE_URL + NLM_MCP_GITHUB_REDIRECT_PATH`. |
 | NotebookLM login expired | Re-run `nlm-mcp login` and replace the mounted auth file with the path set in `NLM_MCP_NOTEBOOKLM_AUTH_FILE`, or `~/.config/nlm-mcp/notebooklm_auth.json` when unset. |
+| `mixed-account cookies` or `account-routing mismatch` | Replace the server auth file with a clean `nlm-mcp login` output from the intended Google account. Do not merge old browser exports into the mounted file; a polluted file can list notebooks but fail on create/write RPCs. |
 | Container cannot update auth file | Mount the auth directory read/write, or set `NLM_AUTH_MOUNT_MODE=rw` when using Docker Compose. |

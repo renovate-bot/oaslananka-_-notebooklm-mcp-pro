@@ -6,6 +6,12 @@ The canonical changelog lives at:
 https://github.com/oaslananka/notebooklm-mcp-pro/blob/main/CHANGELOG.md
 ```
 
+## 1.0.15
+
+Patch release that maps NotebookLM mixed-account cookie/account-routing
+failures to an actionable auth-storage error and documents the clean auth-file
+replacement workflow for hosted Docker servers.
+
 ## 1.0.14
 
 Patch release that syncs the freshest NotebookLM profile storage into the

@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.15] - 2026-05-15
+
+### Fixed
+
+- NotebookLM account-routing failures from mixed-account auth storage now map to
+  an actionable authentication error instead of a generic `NotebookLM client
+  error`.
+- Documented the clean auth-file replacement workflow for hosted Docker servers
+  that can list notebooks but fail on create/write RPCs due to polluted browser
+  cookies.
+
 ## [1.0.14] - 2026-05-15
 
 ### Fixed

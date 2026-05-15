@@ -198,6 +198,21 @@ export NLM_MCP_NOTEBOOKLM_AUTH_JSON='{"cookies":[],"origins":[]}'
 
 Treat this JSON as a secret.
 
+If a hosted server can list notebooks but create/update operations fail with a
+NotebookLM account-routing or mixed-account cookie error, replace the mounted
+auth file instead of editing it in place:
+
+```bash
+nlm-mcp login
+scp ~/.config/nlm-mcp/notebooklm_auth.json vps@example.com:/tmp/notebooklm_auth.json
+ssh vps@example.com \
+  "docker exec -i --user 10001:10001 deploy-nlm-mcp-1 sh -c 'umask 077; cat > /home/appuser/.config/nlm-mcp/notebooklm_auth.json' < /tmp/notebooklm_auth.json && rm -f /tmp/notebooklm_auth.json"
+```
+
+This keeps the storage state tied to the intended Google account. Mixed browser
+exports can still authenticate read RPCs while routing create/write RPCs to the
+wrong account slot.
+
 ---
 
 ## 🚀 Quick Start

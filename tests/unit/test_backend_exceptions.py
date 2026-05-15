@@ -1,5 +1,6 @@
 from notebooklm import (
     AuthError,
+    ClientError,
     NotebookLMError,
     NotebookNotFoundError,
     RateLimitError,
@@ -68,6 +69,39 @@ def test_notebooklm_value_error_auth_redirect_maps_to_auth_error() -> None:
         == "Authentication failed. Re-authenticate the configured NotebookLM storage."
     )
     assert "accounts.google.com" not in str(mapped.to_mcp_error())
+
+
+def test_account_routing_client_error_maps_to_auth_error() -> None:
+    mapped = map_backend_exception(
+        ClientError(
+            "RPC CCqFvf returned null result with status code 5 (Not found). If you have "
+            "multiple Google accounts signed in, this is commonly an account-routing mismatch."
+        )
+    )
+
+    assert isinstance(mapped, BackendAuthError)
+    assert mapped.error_code == AUTH_ERROR_CODE
+    assert "mixed-account cookies" in mapped.safe_message
+    assert "CCqFvf" not in str(mapped.to_mcp_error())
+
+
+def test_account_routing_request_default_hint_maps_to_auth_error() -> None:
+    mapped = map_backend_exception(
+        ClientError("Request defaults to account index 0 and may target a different account.")
+    )
+
+    assert isinstance(mapped, BackendAuthError)
+    assert mapped.error_code == AUTH_ERROR_CODE
+    assert "mixed-account cookies" in mapped.safe_message
+
+
+def test_generic_client_error_maps_to_validation_error() -> None:
+    mapped = map_backend_exception(ClientError("RPC failed with a non-auth upstream error"))
+
+    assert isinstance(mapped, BackendValidationError)
+    assert mapped.error_code == VALIDATION_ERROR_CODE
+    assert mapped.safe_message == "NotebookLM client error."
+    assert mapped.data["backend_error_class"] == "ClientError"
 
 
 def test_timeout_error_mapping_uses_timeout_code() -> None:

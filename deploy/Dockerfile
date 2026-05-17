@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.9
 FROM ghcr.io/astral-sh/uv@sha256:1025398289b62de8269e70c45b91ffa37c373f38118d7da036fb8bb8efc85d97 AS uv
 
-FROM python@sha256:401f6e1a67dad31a1bd78e9ad22d0ee0a3b52154e6bd30e90be696bb6a3d7461 AS builder
+FROM python:3.13.13@sha256:28f9800ce0eb18697db998633df0f10f4ca7cc76d752e9457a1581292f7c7c94 AS builder
 
 ENV UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
@@ -17,7 +17,7 @@ COPY src ./src
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --no-dev --no-editable
 
-FROM python@sha256:401f6e1a67dad31a1bd78e9ad22d0ee0a3b52154e6bd30e90be696bb6a3d7461 AS runtime
+FROM python:3.13.13@sha256:28f9800ce0eb18697db998633df0f10f4ca7cc76d752e9457a1581292f7c7c94 AS runtime
 
 ARG IMAGE_VERSION=dev
 

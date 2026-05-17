@@ -56,6 +56,8 @@ EXPECTED_CORE_TOOLS = {
     "fetch",
 }
 CHAT_HISTORY_LIMIT = 5
+ALPHA_SOURCE_COUNT = 2
+BETA_SOURCE_COUNT = 1
 
 
 class FakeBackend:
@@ -63,8 +65,18 @@ class FakeBackend:
 
     def __init__(self) -> None:
         self.notebooks = [
-            {"id": "nb-1", "title": "Alpha Notebook", "owner": "user@example.test"},
-            {"id": "nb-2", "title": "Beta Notebook", "owner": "user@example.test"},
+            {
+                "id": "nb-1",
+                "title": "Alpha Notebook",
+                "owner": "user@example.test",
+                "sources_count": ALPHA_SOURCE_COUNT,
+            },
+            {
+                "id": "nb-2",
+                "title": "Beta Notebook",
+                "owner": "user@example.test",
+                "sources_count": BETA_SOURCE_COUNT,
+            },
         ]
         self.sources = {
             "nb-1": [
@@ -82,8 +94,18 @@ class FakeBackend:
     async def create_notebook(self, title: str) -> dict[str, str]:
         return {"id": "nb-new", "title": title}
 
-    async def get_notebook(self, notebook_id: str) -> dict[str, str]:
-        return {"id": notebook_id, "title": "Alpha Notebook"}
+    async def get_notebook(self, notebook_id: str) -> dict[str, Any]:
+        notebook = next(
+            (notebook for notebook in self.notebooks if notebook["id"] == notebook_id),
+            None,
+        )
+        if notebook is None:
+            return {"id": notebook_id, "title": "Unknown Notebook", "sources_count": 0}
+        return {
+            "id": notebook_id,
+            "title": notebook["title"],
+            "sources_count": notebook["sources_count"],
+        }
 
     async def rename_notebook(self, notebook_id: str, title: str) -> dict[str, str]:
         return {"id": notebook_id, "title": title}
@@ -283,6 +305,7 @@ async def test_notebook_source_and_chat_tools_use_backend() -> None:
         )
 
     assert notebooks.data["notebooks"][0]["id"] == "nb-1"
+    assert notebooks.data["notebooks"][0]["sources_count"] == ALPHA_SOURCE_COUNT
     assert renamed.data["result"]["title"] == "Renamed"
     assert source.data["result"]["id"] == "src-text"
     assert answer.data["result"]["answer"] == "answer: What changed?"
@@ -311,6 +334,7 @@ async def test_remaining_notebook_tools_use_backend() -> None:
 
     assert created.data["result"] == {"id": "nb-new", "title": "New"}
     assert fetched.data["result"]["id"] == "nb-1"
+    assert fetched.data["result"]["sources_count"] == ALPHA_SOURCE_COUNT
     assert public.data["result"]["public"] is True
     assert invited.data["result"]["role"] == "editor"
     assert status.data["result"]["collaborators"] == []
@@ -464,7 +488,10 @@ async def test_search_and_fetch_return_openai_compatible_shapes() -> None:
     assert search.data == {"ids": ["notebook:nb-1", "source:nb-1:src-1"]}
     assert limited.data == {"ids": ["notebook:nb-1"]}
     assert notebook.data["metadata"]["kind"] == "notebook"
-    assert notebook.data["content"] == '{"id": "nb-1", "title": "Alpha Notebook"}'
+    assert notebook.data["content"] == json.dumps(
+        {"id": "nb-1", "sources_count": ALPHA_SOURCE_COUNT, "title": "Alpha Notebook"},
+        sort_keys=True,
+    )
     assert fetched.data["id"] == "source:nb-1:src-1"
     assert fetched.data["title"] == "Alpha Source"
     assert fetched.data["content"] == "indexed text"

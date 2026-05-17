@@ -6,9 +6,9 @@ import asyncio
 import inspect
 import os
 import stat
-from collections.abc import AsyncIterable, Awaitable, Callable, Iterator
+from collections.abc import AsyncIterable, Awaitable, Callable, Iterator, Mapping
 from contextlib import contextmanager, suppress
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass, is_dataclass
 from itertools import islice
 from pathlib import Path
 from typing import Any, Literal, TypeVar
@@ -60,6 +60,19 @@ ARTIFACT_OUTPUT_FORMATS = {
     "flashcards": {"json", "markdown", "html"},
     "slide_deck": {"pdf", "pptx"},
 }
+NOTEBOOK_ID_KEYS = ("id", "notebook_id", "project_id")
+SOURCE_COUNT_ALIASES = (
+    "sources_count",
+    "source_count",
+    "sourcesCount",
+    "sourceCount",
+    "document_count",
+    "documentCount",
+    "documents_count",
+    "documentsCount",
+    "num_sources",
+    "numSources",
+)
 
 
 def _normalize_output_format(output_format: str | None) -> str | None:
@@ -228,6 +241,154 @@ async def _list_notes_compat(client: Any, notebook_id: str, *, limit: int) -> An
     return result
 
 
+def _plain_notebook_metadata(notebook: Any) -> dict[str, Any]:
+    """Convert a notebook metadata object into a shallow, mutable mapping."""
+    if isinstance(notebook, Mapping):
+        return dict(notebook)
+    if is_dataclass(notebook) and not isinstance(notebook, type):
+        data = asdict(notebook)
+        return data if isinstance(data, dict) else {"value": data}
+    model_dump = getattr(notebook, "model_dump", None)
+    if model_dump is not None:
+        try:
+            data = model_dump(mode="json")
+        except TypeError:
+            data = model_dump()
+        if isinstance(data, Mapping):
+            return dict(data)
+    if hasattr(notebook, "__dict__"):
+        return {key: value for key, value in vars(notebook).items() if not key.startswith("_")}
+    return {"value": notebook}
+
+
+def _coerce_source_count(value: Any) -> int | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value if value >= 0 else None
+    if isinstance(value, float):
+        if value.is_integer() and value >= 0:
+            return int(value)
+        return None
+    if isinstance(value, str):
+        stripped = value.strip()
+        if stripped.isdecimal():
+            return int(stripped)
+    return None
+
+
+def _metadata_source_count(metadata: Mapping[str, Any]) -> int | None:
+    saw_zero = False
+    for key in SOURCE_COUNT_ALIASES:
+        if key not in metadata:
+            continue
+        count = _coerce_source_count(metadata[key])
+        if count is None:
+            continue
+        if count > 0:
+            return count
+        saw_zero = True
+    return 0 if saw_zero else None
+
+
+def _metadata_notebook_id(metadata: Mapping[str, Any], notebook: Any) -> str | None:
+    for key in NOTEBOOK_ID_KEYS:
+        item = metadata.get(key)
+        if item is not None and str(item):
+            return str(item)
+    for key in NOTEBOOK_ID_KEYS:
+        item = getattr(notebook, key, None)
+        if item is not None and str(item):
+            return str(item)
+    return None
+
+
+async def _source_count_from_sources(sources: Any) -> int:
+    if isinstance(sources, Mapping):
+        for key in ("sources", "items", "results"):
+            items = sources.get(key)
+            if items is not None:
+                return await _source_count_from_sources(items)
+        return len(sources)
+    if isinstance(sources, (str, bytes)):
+        return 1
+    if isinstance(sources, AsyncIterable):
+        count = 0
+        async for _source in sources:
+            count += 1
+        return count
+    try:
+        return len(sources)
+    except TypeError:
+        return sum(1 for _source in sources)
+
+
+async def _hydrate_notebook_source_count(
+    client: Any,
+    notebook: Any,
+    *,
+    suppress_hydration_errors: bool,
+) -> dict[str, Any]:
+    metadata = _plain_notebook_metadata(notebook)
+    source_count = _metadata_source_count(metadata)
+    if source_count is not None:
+        metadata["sources_count"] = source_count
+    if source_count is not None and source_count > 0:
+        return metadata
+
+    notebook_id = _metadata_notebook_id(metadata, notebook)
+    if notebook_id is None:
+        return metadata
+
+    try:
+        sources = await client.sources.list(notebook_id)
+        metadata["sources_count"] = await _source_count_from_sources(sources)
+    except Exception:
+        if not suppress_hydration_errors:
+            raise
+    return metadata
+
+
+async def _hydrate_notebook_list_source_counts(client: Any, notebooks: Any) -> Any:
+    if isinstance(notebooks, AsyncIterable):
+        hydrated: list[dict[str, Any]] = []
+        async for notebook in notebooks:
+            hydrated.append(
+                await _hydrate_notebook_source_count(
+                    client,
+                    notebook,
+                    suppress_hydration_errors=True,
+                )
+            )
+        return hydrated
+    if isinstance(notebooks, Mapping):
+        items = notebooks.get("notebooks")
+        if items is None:
+            return await _hydrate_notebook_source_count(
+                client,
+                notebooks,
+                suppress_hydration_errors=True,
+            )
+        hydrated_notebooks = await _hydrate_notebook_list_source_counts(client, items)
+        result = dict(notebooks)
+        result["notebooks"] = hydrated_notebooks
+        return result
+    if isinstance(notebooks, (list, tuple, set)):
+        return [
+            await _hydrate_notebook_source_count(
+                client,
+                notebook,
+                suppress_hydration_errors=True,
+            )
+            for notebook in notebooks
+        ]
+    return await _hydrate_notebook_source_count(
+        client,
+        notebooks,
+        suppress_hydration_errors=True,
+    )
+
+
 class NotebookLMBackend:
     """Thin async wrapper around notebooklm-py with retry and error mapping."""
 
@@ -335,7 +496,12 @@ class NotebookLMBackend:
 
     async def list_notebooks(self) -> Any:
         """List NotebookLM notebooks."""
-        return await self._call("notebook.list", lambda client: client.notebooks.list())
+
+        async def operation(client: Any) -> Any:
+            notebooks = await client.notebooks.list()
+            return await _hydrate_notebook_list_source_counts(client, notebooks)
+
+        return await self._call("notebook.list", operation)
 
     async def create_notebook(self, title: str) -> Any:
         """Create a NotebookLM notebook."""
@@ -347,10 +513,16 @@ class NotebookLMBackend:
 
     async def get_notebook(self, notebook_id: str) -> Any:
         """Get NotebookLM notebook metadata."""
-        return await self._call(
-            "notebook.get",
-            lambda client: client.notebooks.get(notebook_id),
-        )
+
+        async def operation(client: Any) -> Any:
+            notebook = await client.notebooks.get(notebook_id)
+            return await _hydrate_notebook_source_count(
+                client,
+                notebook,
+                suppress_hydration_errors=False,
+            )
+
+        return await self._call("notebook.get", operation)
 
     async def rename_notebook(self, notebook_id: str, title: str) -> Any:
         """Rename a NotebookLM notebook."""

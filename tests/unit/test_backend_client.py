@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import inspect
 import os
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, cast
 
@@ -32,6 +33,11 @@ MAX_RETRY_ATTEMPTS = 5
 EXPECTED_RECONNECT_CLIENTS = 2
 EXPECTED_VIDEO_GENERATE_CALLS = 2
 RETRY_AFTER_SECONDS = 3
+HELPER_TWO_COUNT = 2
+HELPER_THREE_COUNT = 3
+HELPER_FOUR_COUNT = 4
+HELPER_SEVEN_COUNT = 7
+HELPER_EIGHT_COUNT = 8
 
 
 async def _no_sleep(_delay: float) -> None:
@@ -43,12 +49,14 @@ class FakeNotebooksAPI:
         self.calls: list[tuple[str, tuple[Any, ...]]] = []
         self.error: Exception | None = None
         self.create_error: Exception | None = None
+        self.notebooks: list[Any] = [{"id": "nb-1", "title": "Notebook"}]
+        self.notebooks_by_id: dict[str, Any] = {}
 
-    async def list(self) -> list[dict[str, str]]:
+    async def list(self) -> list[Any]:
         self.calls.append(("list", ()))
         if self.error is not None:
             raise self.error
-        return [{"id": "nb-1", "title": "Notebook"}]
+        return self.notebooks
 
     async def create(self, title: str) -> dict[str, str]:
         self.calls.append(("create", (title,)))
@@ -56,9 +64,9 @@ class FakeNotebooksAPI:
             raise self.create_error
         return {"id": "nb-2", "title": title}
 
-    async def get(self, notebook_id: str) -> dict[str, str]:
+    async def get(self, notebook_id: str) -> Any:
         self.calls.append(("get", (notebook_id,)))
-        return {"id": notebook_id, "title": "Notebook"}
+        return self.notebooks_by_id.get(notebook_id, {"id": notebook_id, "title": "Notebook"})
 
     async def rename(self, notebook_id: str, new_title: str) -> dict[str, str]:
         self.calls.append(("rename", (notebook_id, new_title)))
@@ -72,9 +80,12 @@ class FakeNotebooksAPI:
 class FakeSourcesAPI:
     def __init__(self) -> None:
         self.calls: list[tuple[str, tuple[Any, ...]]] = []
+        self.sources_by_notebook: dict[str, list[Any]] = {}
 
     async def list(self, notebook_id: str) -> list[dict[str, str]]:
         self.calls.append(("list", (notebook_id,)))
+        if notebook_id in self.sources_by_notebook:
+            return self.sources_by_notebook[notebook_id]
         return [{"id": "src-1", "title": "Source"}]
 
     async def add_url(self, notebook_id: str, url: str, wait: bool = False) -> dict[str, str]:
@@ -283,9 +294,15 @@ async def test_backend_delegates_notebook_operations() -> None:
         retry_sleep=_no_sleep,
     )
 
-    assert await backend.list_notebooks() == [{"id": "nb-1", "title": "Notebook"}]
+    assert await backend.list_notebooks() == [
+        {"id": "nb-1", "title": "Notebook", "sources_count": 1}
+    ]
     assert await backend.create_notebook("New") == {"id": "nb-2", "title": "New"}
-    assert await backend.get_notebook("nb-1") == {"id": "nb-1", "title": "Notebook"}
+    assert await backend.get_notebook("nb-1") == {
+        "id": "nb-1",
+        "title": "Notebook",
+        "sources_count": 1,
+    }
     assert await backend.rename_notebook("nb-1", "Renamed") == {
         "id": "nb-1",
         "title": "Renamed",
@@ -303,6 +320,313 @@ async def test_backend_delegates_notebook_operations() -> None:
         ("rename", ("nb-1", "Renamed")),
         ("delete", ("nb-1",)),
     ]
+
+
+async def test_backend_hydrates_zero_source_counts_for_listed_notebooks() -> None:
+    fake = FakeNotebookLMClient()
+    fake.notebooks.notebooks = [
+        {"id": "nb-a", "title": "A", "sources_count": 0},
+        {"id": "nb-b", "title": "B", "sources_count": 0},
+    ]
+    fake.sources.sources_by_notebook = {
+        "nb-a": [{"id": "src-1"}, {"id": "src-2"}],
+        "nb-b": [],
+    }
+
+    async def factory(_settings: Settings) -> FakeNotebookLMClient:
+        return fake
+
+    backend = NotebookLMBackend(
+        Settings(),
+        client_factory=factory,
+        retry_wait_strategy=wait_none(),
+        retry_sleep=_no_sleep,
+    )
+
+    try:
+        assert await backend.list_notebooks() == [
+            {"id": "nb-a", "title": "A", "sources_count": 2},
+            {"id": "nb-b", "title": "B", "sources_count": 0},
+        ]
+    finally:
+        await backend.close()
+
+    assert fake.sources.calls == [("list", ("nb-a",)), ("list", ("nb-b",))]
+
+
+async def test_backend_get_notebook_hydrates_zero_source_count() -> None:
+    fake = FakeNotebookLMClient()
+    fake.notebooks.notebooks_by_id["nb-a"] = {"id": "nb-a", "title": "A", "sources_count": 0}
+    fake.sources.sources_by_notebook["nb-a"] = [{"id": "src-1"}, {"id": "src-2"}, {"id": "src-3"}]
+
+    async def factory(_settings: Settings) -> FakeNotebookLMClient:
+        return fake
+
+    backend = NotebookLMBackend(
+        Settings(),
+        client_factory=factory,
+        retry_wait_strategy=wait_none(),
+        retry_sleep=_no_sleep,
+    )
+
+    try:
+        assert await backend.get_notebook("nb-a") == {
+            "id": "nb-a",
+            "title": "A",
+            "sources_count": 3,
+        }
+    finally:
+        await backend.close()
+
+    assert fake.sources.calls == [("list", ("nb-a",))]
+
+
+async def test_backend_preserves_valid_nonzero_source_count_without_listing_sources() -> None:
+    fake = FakeNotebookLMClient()
+    fake.notebooks.notebooks = [{"id": "nb-a", "title": "A", "sources_count": 5}]
+
+    async def factory(_settings: Settings) -> FakeNotebookLMClient:
+        return fake
+
+    backend = NotebookLMBackend(
+        Settings(),
+        client_factory=factory,
+        retry_wait_strategy=wait_none(),
+        retry_sleep=_no_sleep,
+    )
+
+    try:
+        assert await backend.list_notebooks() == [{"id": "nb-a", "title": "A", "sources_count": 5}]
+    finally:
+        await backend.close()
+
+    assert fake.sources.calls == []
+
+
+async def test_backend_normalizes_source_count_aliases_and_numeric_strings() -> None:
+    fake = FakeNotebookLMClient()
+    fake.notebooks.notebooks = [
+        {"id": "nb-a", "title": "A", "documentCount": 4},
+        {"id": "nb-b", "title": "B", "sourceCount": "7"},
+        {"id": "nb-c", "title": "C", "sources_count": 0, "documentCount": HELPER_EIGHT_COUNT},
+    ]
+
+    async def factory(_settings: Settings) -> FakeNotebookLMClient:
+        return fake
+
+    backend = NotebookLMBackend(
+        Settings(),
+        client_factory=factory,
+        retry_wait_strategy=wait_none(),
+        retry_sleep=_no_sleep,
+    )
+
+    try:
+        assert await backend.list_notebooks() == [
+            {"id": "nb-a", "title": "A", "documentCount": 4, "sources_count": 4},
+            {"id": "nb-b", "title": "B", "sourceCount": "7", "sources_count": 7},
+            {
+                "id": "nb-c",
+                "title": "C",
+                "sources_count": HELPER_EIGHT_COUNT,
+                "documentCount": HELPER_EIGHT_COUNT,
+            },
+        ]
+    finally:
+        await backend.close()
+
+    assert fake.sources.calls == []
+
+
+async def test_backend_hydrates_invalid_source_counts() -> None:
+    fake = FakeNotebookLMClient()
+    fake.notebooks.notebooks = [
+        {"id": "nb-a", "title": "A", "sources_count": -1},
+        {"id": "nb-b", "title": "B", "sources_count": "bad"},
+    ]
+    fake.sources.sources_by_notebook = {
+        "nb-a": [{"id": "src-1"}, {"id": "src-2"}],
+        "nb-b": [{"id": "src-3"}],
+    }
+
+    async def factory(_settings: Settings) -> FakeNotebookLMClient:
+        return fake
+
+    backend = NotebookLMBackend(
+        Settings(),
+        client_factory=factory,
+        retry_wait_strategy=wait_none(),
+        retry_sleep=_no_sleep,
+    )
+
+    try:
+        assert await backend.list_notebooks() == [
+            {"id": "nb-a", "title": "A", "sources_count": 2},
+            {"id": "nb-b", "title": "B", "sources_count": 1},
+        ]
+    finally:
+        await backend.close()
+
+    assert fake.sources.calls == [("list", ("nb-a",)), ("list", ("nb-b",))]
+
+
+async def test_backend_normalizes_dataclass_notebook_metadata() -> None:
+    @dataclass
+    class NotebookRecord:
+        id: str
+        title: str
+        sources_count: str
+
+    fake = FakeNotebookLMClient()
+    fake.notebooks.notebooks = [NotebookRecord(id="nb-a", title="A", sources_count="2")]
+
+    async def factory(_settings: Settings) -> FakeNotebookLMClient:
+        return fake
+
+    backend = NotebookLMBackend(
+        Settings(),
+        client_factory=factory,
+        retry_wait_strategy=wait_none(),
+        retry_sleep=_no_sleep,
+    )
+
+    try:
+        assert await backend.list_notebooks() == [{"id": "nb-a", "title": "A", "sources_count": 2}]
+    finally:
+        await backend.close()
+
+    assert fake.sources.calls == []
+
+
+def test_notebook_metadata_helpers_cover_object_shapes_and_count_inputs() -> None:
+    class LegacyModel:
+        def model_dump(self) -> dict[str, Any]:
+            return {"id": "nb-model", "sourceCount": "3"}
+
+    class OddModel:
+        def model_dump(self, mode: str = "python") -> list[str]:
+            assert mode == "json"
+            return ["notebook"]
+
+    class ObjectNotebook:
+        def __init__(self) -> None:
+            self.notebook_id = "nb-object"
+            self.title = "Object"
+            self._private = "hidden"
+
+    class ProjectNotebook:
+        project_id = "nb-project"
+
+    assert client_module._plain_notebook_metadata(LegacyModel()) == {
+        "id": "nb-model",
+        "sourceCount": "3",
+    }
+    odd_model = OddModel()
+    assert client_module._plain_notebook_metadata(odd_model) == {}
+    assert client_module._plain_notebook_metadata(ObjectNotebook()) == {
+        "notebook_id": "nb-object",
+        "title": "Object",
+    }
+    assert client_module._plain_notebook_metadata("raw") == {"value": "raw"}
+    assert client_module._coerce_source_count(True) is None
+    assert client_module._coerce_source_count(HELPER_TWO_COUNT) == HELPER_TWO_COUNT
+    assert client_module._coerce_source_count(2.0) == HELPER_TWO_COUNT
+    assert client_module._coerce_source_count(2.5) is None
+    assert client_module._coerce_source_count(" 7 ") == HELPER_SEVEN_COUNT
+    assert client_module._coerce_source_count("bad") is None
+    assert client_module._coerce_source_count(-1) is None
+    assert client_module._coerce_source_count(None) is None
+    assert client_module._metadata_notebook_id({}, ProjectNotebook()) == "nb-project"
+    assert client_module._metadata_notebook_id({}, object()) is None
+
+
+async def test_source_count_from_source_shapes() -> None:
+    async def async_sources() -> Any:
+        for source_id in ("src-1", "src-2"):
+            yield {"id": source_id}
+
+    assert (
+        await client_module._source_count_from_sources(
+            {"sources": [{"id": "src-1"}, {"id": "src-2"}]}
+        )
+        == HELPER_TWO_COUNT
+    )
+    assert (
+        await client_module._source_count_from_sources(
+            {"items": [{"id": "src-1"}, {"id": "src-2"}, {"id": "src-3"}]}
+        )
+        == HELPER_THREE_COUNT
+    )
+    assert (
+        await client_module._source_count_from_sources(
+            {"results": [{"id": "src-1"}, {"id": "src-2"}, {"id": "src-3"}, {"id": "src-4"}]}
+        )
+        == HELPER_FOUR_COUNT
+    )
+    assert await client_module._source_count_from_sources({"src-1": {}, "src-2": {}}) == (
+        HELPER_TWO_COUNT
+    )
+    assert await client_module._source_count_from_sources("single-source") == 1
+    assert await client_module._source_count_from_sources(async_sources()) == HELPER_TWO_COUNT
+    assert await client_module._source_count_from_sources(iter(("a", "b", "c"))) == (
+        HELPER_THREE_COUNT
+    )
+
+
+async def test_list_notebook_hydration_handles_envelopes_and_suppressed_errors() -> None:
+    class SourcesAPI:
+        async def list(self, notebook_id: str) -> list[dict[str, str]]:
+            if notebook_id == "nb-error":
+                raise RuntimeError("source listing failed")
+            return [{"id": "src-1"}, {"id": "src-2"}]
+
+    class Client:
+        sources = SourcesAPI()
+
+    async def notebooks() -> Any:
+        yield {"id": "nb-a", "sources_count": 0}
+        yield {"id": "nb-error", "sources_count": 0}
+
+    assert await client_module._hydrate_notebook_list_source_counts(
+        Client(),
+        {"notebooks": [{"id": "nb-a", "sources_count": 0}]},
+    ) == {"notebooks": [{"id": "nb-a", "sources_count": HELPER_TWO_COUNT}]}
+    assert await client_module._hydrate_notebook_list_source_counts(
+        Client(),
+        notebooks(),
+    ) == [
+        {"id": "nb-a", "sources_count": HELPER_TWO_COUNT},
+        {"id": "nb-error", "sources_count": 0},
+    ]
+    assert await client_module._hydrate_notebook_list_source_counts(
+        Client(),
+        {"id": "nb-a", "sources_count": 0},
+    ) == {"id": "nb-a", "sources_count": HELPER_TWO_COUNT}
+    assert await client_module._hydrate_notebook_source_count(
+        Client(),
+        {"title": "missing id", "sources_count": 0},
+        suppress_hydration_errors=True,
+    ) == {"title": "missing id", "sources_count": 0}
+    assert await client_module._hydrate_notebook_list_source_counts(
+        Client(),
+        "singleton",
+    ) == {"value": "singleton"}
+
+
+async def test_get_notebook_hydration_propagates_source_errors() -> None:
+    class SourcesAPI:
+        async def list(self, _notebook_id: str) -> list[dict[str, str]]:
+            raise RuntimeError("source listing failed")
+
+    class Client:
+        sources = SourcesAPI()
+
+    with raises(RuntimeError, match="source listing failed"):
+        await client_module._hydrate_notebook_source_count(
+            Client(),
+            {"id": "nb-error", "sources_count": 0},
+            suppress_hydration_errors=False,
+        )
 
 
 async def test_backend_delegates_source_and_chat_operations() -> None:
@@ -678,7 +1002,9 @@ async def test_backend_reconnects_after_retryable_operation_error() -> None:
     )
 
     try:
-        assert await backend.list_notebooks() == [{"id": "nb-1", "title": "Notebook"}]
+        assert await backend.list_notebooks() == [
+            {"id": "nb-1", "title": "Notebook", "sources_count": 1}
+        ]
     finally:
         await backend.close()
 
@@ -706,7 +1032,9 @@ async def test_backend_retries_retryable_connection_error() -> None:
     )
 
     try:
-        assert await backend.list_notebooks() == [{"id": "nb-1", "title": "Notebook"}]
+        assert await backend.list_notebooks() == [
+            {"id": "nb-1", "title": "Notebook", "sources_count": 1}
+        ]
     finally:
         await backend.close()
 

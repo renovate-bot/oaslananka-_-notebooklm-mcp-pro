@@ -6,6 +6,13 @@ The canonical changelog lives at:
 https://github.com/oaslananka/notebooklm-mcp-pro/blob/main/CHANGELOG.md
 ```
 
+## 1.0.18
+
+Patch release that fixes concurrent `TaskStore` initialization, makes the
+Docker OCI version label release-stamped, refreshes selected dependency locks,
+and hardens CI orchestration with summary gates, dependency review, Zizmor, and
+release-time CI verification.
+
 ## 1.0.17
 
 Patch release that fixes `chat.list_notes` against `notebooklm-py` versions

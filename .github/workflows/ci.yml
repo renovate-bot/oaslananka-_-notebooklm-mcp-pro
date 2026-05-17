@@ -4,10 +4,11 @@ on:
   push:
     branches: [main]
   pull_request:
+  merge_group:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -20,37 +21,11 @@ jobs:
     name: lint
     runs-on: [self-hosted, Linux, X64]
     steps:
-      - name: Prepare self-hosted workspace
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ -z "${GITHUB_WORKSPACE:-}" ]; then
-            echo "GITHUB_WORKSPACE is unset" >&2
-            exit 1
-          fi
-          case "$GITHUB_WORKSPACE" in
-            */_work/notebooklm-mcp-pro/notebooklm-mcp-pro|*/work/notebooklm-mcp-pro/notebooklm-mcp-pro) ;;
-            *)
-              echo "Refusing to clean unexpected workspace: $GITHUB_WORKSPACE" >&2
-              exit 1
-              ;;
-          esac
-          CLEAN_TARGETS=(
-            "$GITHUB_WORKSPACE/storage"
-            "$GITHUB_WORKSPACE/.venv"
-            "$GITHUB_WORKSPACE/.pytest_cache"
-            "$GITHUB_WORKSPACE/.ruff_cache"
-            "$GITHUB_WORKSPACE/.mypy_cache"
-            "$GITHUB_WORKSPACE/htmlcov"
-            "$GITHUB_WORKSPACE/dist"
-            "$GITHUB_WORKSPACE/build"
-          )
-          if command -v sudo >/dev/null 2>&1 && sudo -n true 2>/dev/null; then
-            sudo -n rm -rf "${CLEAN_TARGETS[@]}"
-          else
-            rm -rf "${CLEAN_TARGETS[@]}"
-          fi
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          clean: false
+      - name: Prepare self-hosted workspace
+        uses: ./.github/actions/prepare-workspace
       - name: Install system dependencies
         run: |
           if command -v apt-get >/dev/null 2>&1; then
@@ -79,37 +54,11 @@ jobs:
     runs-on: [self-hosted, Linux, X64]
     needs: lint
     steps:
-      - name: Prepare self-hosted workspace
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ -z "${GITHUB_WORKSPACE:-}" ]; then
-            echo "GITHUB_WORKSPACE is unset" >&2
-            exit 1
-          fi
-          case "$GITHUB_WORKSPACE" in
-            */_work/notebooklm-mcp-pro/notebooklm-mcp-pro|*/work/notebooklm-mcp-pro/notebooklm-mcp-pro) ;;
-            *)
-              echo "Refusing to clean unexpected workspace: $GITHUB_WORKSPACE" >&2
-              exit 1
-              ;;
-          esac
-          CLEAN_TARGETS=(
-            "$GITHUB_WORKSPACE/storage"
-            "$GITHUB_WORKSPACE/.venv"
-            "$GITHUB_WORKSPACE/.pytest_cache"
-            "$GITHUB_WORKSPACE/.ruff_cache"
-            "$GITHUB_WORKSPACE/.mypy_cache"
-            "$GITHUB_WORKSPACE/htmlcov"
-            "$GITHUB_WORKSPACE/dist"
-            "$GITHUB_WORKSPACE/build"
-          )
-          if command -v sudo >/dev/null 2>&1 && sudo -n true 2>/dev/null; then
-            sudo -n rm -rf "${CLEAN_TARGETS[@]}"
-          else
-            rm -rf "${CLEAN_TARGETS[@]}"
-          fi
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          clean: false
+      - name: Prepare self-hosted workspace
+        uses: ./.github/actions/prepare-workspace
       - name: Install system dependencies
         run: |
           if command -v apt-get >/dev/null 2>&1; then
@@ -141,37 +90,11 @@ jobs:
       matrix:
         python-version: ["3.11", "3.12", "3.13"]
     steps:
-      - name: Prepare self-hosted workspace
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ -z "${GITHUB_WORKSPACE:-}" ]; then
-            echo "GITHUB_WORKSPACE is unset" >&2
-            exit 1
-          fi
-          case "$GITHUB_WORKSPACE" in
-            */_work/notebooklm-mcp-pro/notebooklm-mcp-pro|*/work/notebooklm-mcp-pro/notebooklm-mcp-pro) ;;
-            *)
-              echo "Refusing to clean unexpected workspace: $GITHUB_WORKSPACE" >&2
-              exit 1
-              ;;
-          esac
-          CLEAN_TARGETS=(
-            "$GITHUB_WORKSPACE/storage"
-            "$GITHUB_WORKSPACE/.venv"
-            "$GITHUB_WORKSPACE/.pytest_cache"
-            "$GITHUB_WORKSPACE/.ruff_cache"
-            "$GITHUB_WORKSPACE/.mypy_cache"
-            "$GITHUB_WORKSPACE/htmlcov"
-            "$GITHUB_WORKSPACE/dist"
-            "$GITHUB_WORKSPACE/build"
-          )
-          if command -v sudo >/dev/null 2>&1 && sudo -n true 2>/dev/null; then
-            sudo -n rm -rf "${CLEAN_TARGETS[@]}"
-          else
-            rm -rf "${CLEAN_TARGETS[@]}"
-          fi
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          clean: false
+      - name: Prepare self-hosted workspace
+        uses: ./.github/actions/prepare-workspace
       - name: Install system dependencies
         run: |
           if command -v apt-get >/dev/null 2>&1; then
@@ -219,37 +142,11 @@ jobs:
     runs-on: [self-hosted, Linux, X64]
     needs: test-summary
     steps:
-      - name: Prepare self-hosted workspace
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ -z "${GITHUB_WORKSPACE:-}" ]; then
-            echo "GITHUB_WORKSPACE is unset" >&2
-            exit 1
-          fi
-          case "$GITHUB_WORKSPACE" in
-            */_work/notebooklm-mcp-pro/notebooklm-mcp-pro|*/work/notebooklm-mcp-pro/notebooklm-mcp-pro) ;;
-            *)
-              echo "Refusing to clean unexpected workspace: $GITHUB_WORKSPACE" >&2
-              exit 1
-              ;;
-          esac
-          CLEAN_TARGETS=(
-            "$GITHUB_WORKSPACE/storage"
-            "$GITHUB_WORKSPACE/.venv"
-            "$GITHUB_WORKSPACE/.pytest_cache"
-            "$GITHUB_WORKSPACE/.ruff_cache"
-            "$GITHUB_WORKSPACE/.mypy_cache"
-            "$GITHUB_WORKSPACE/htmlcov"
-            "$GITHUB_WORKSPACE/dist"
-            "$GITHUB_WORKSPACE/build"
-          )
-          if command -v sudo >/dev/null 2>&1 && sudo -n true 2>/dev/null; then
-            sudo -n rm -rf "${CLEAN_TARGETS[@]}"
-          else
-            rm -rf "${CLEAN_TARGETS[@]}"
-          fi
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          clean: false
+      - name: Prepare self-hosted workspace
+        uses: ./.github/actions/prepare-workspace
       - name: Install system dependencies
         run: |
           if command -v apt-get >/dev/null 2>&1; then
@@ -271,3 +168,31 @@ jobs:
       - run: uv run python -m build
       - run: uv pip install dist/*.whl
       - run: uv run nlm-mcp --version
+
+  ci-ok:
+    name: CI
+    if: ${{ always() && !cancelled() }}
+    needs: [lint, typecheck, test-summary, build]
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 2
+    permissions:
+      contents: read
+    steps:
+      - name: Check all gates
+        env:
+          LINT_RESULT: ${{ needs.lint.result }}
+          TYPECHECK_RESULT: ${{ needs.typecheck.result }}
+          TEST_RESULT: ${{ needs.test-summary.result }}
+          BUILD_RESULT: ${{ needs.build.result }}
+        run: |
+          FAILED=()
+          [ "$LINT_RESULT" != "success" ] && FAILED+=("lint: $LINT_RESULT")
+          [ "$TYPECHECK_RESULT" != "success" ] && FAILED+=("typecheck: $TYPECHECK_RESULT")
+          [ "$TEST_RESULT" != "success" ] && FAILED+=("test-summary: $TEST_RESULT")
+          [ "$BUILD_RESULT" != "success" ] && FAILED+=("build: $BUILD_RESULT")
+          if [ ${#FAILED[@]} -gt 0 ]; then
+            printf "CI gate failed:\n"
+            printf "  - %s\n" "${FAILED[@]}"
+            exit 1
+          fi
+          echo "All CI gates passed."

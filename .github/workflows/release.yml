@@ -18,38 +18,15 @@ env:
 jobs:
   validate-tag:
     runs-on: [self-hosted, Linux, X64]
+    permissions:
+      checks: read
+      contents: read
     steps:
-      - name: Prepare self-hosted workspace
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ -z "${GITHUB_WORKSPACE:-}" ]; then
-            echo "GITHUB_WORKSPACE is unset" >&2
-            exit 1
-          fi
-          case "$GITHUB_WORKSPACE" in
-            */_work/notebooklm-mcp-pro/notebooklm-mcp-pro|*/work/notebooklm-mcp-pro/notebooklm-mcp-pro) ;;
-            *)
-              echo "Refusing to clean unexpected workspace: $GITHUB_WORKSPACE" >&2
-              exit 1
-              ;;
-          esac
-          CLEAN_TARGETS=(
-            "$GITHUB_WORKSPACE/storage"
-            "$GITHUB_WORKSPACE/.venv"
-            "$GITHUB_WORKSPACE/.pytest_cache"
-            "$GITHUB_WORKSPACE/.ruff_cache"
-            "$GITHUB_WORKSPACE/.mypy_cache"
-            "$GITHUB_WORKSPACE/htmlcov"
-            "$GITHUB_WORKSPACE/dist"
-            "$GITHUB_WORKSPACE/build"
-          )
-          if command -v sudo >/dev/null 2>&1 && sudo -n true 2>/dev/null; then
-            sudo -n rm -rf "${CLEAN_TARGETS[@]}"
-          else
-            rm -rf "${CLEAN_TARGETS[@]}"
-          fi
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          clean: false
+      - name: Prepare self-hosted workspace
+        uses: ./.github/actions/prepare-workspace
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
           python-version: "3.11"
@@ -59,6 +36,19 @@ jobs:
           PKG_VERSION=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])")
           if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
             echo "Tag $TAG_VERSION != pyproject.toml $PKG_VERSION" && exit 1
+          fi
+      - name: Verify CI passed on tagged commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          SHA="${{ github.sha }}"
+          RESULT=$(gh api "repos/${{ github.repository }}/commits/${SHA}/check-runs" \
+            --jq '[.check_runs[] | select(.name == "CI")] | sort_by(.completed_at) | reverse | .[0].conclusion // "not_found"')
+          if [ "$RESULT" != "success" ]; then
+            echo "::error::CI check-run 'CI' did not pass on ${SHA} (result: ${RESULT})"
+            echo "Run CI on this commit first, then re-tag."
+            exit 1
           fi
 
   release:
@@ -71,38 +61,14 @@ jobs:
       id-token: write
       attestations: write
     steps:
-      - name: Prepare self-hosted workspace
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ -z "${GITHUB_WORKSPACE:-}" ]; then
-            echo "GITHUB_WORKSPACE is unset" >&2
-            exit 1
-          fi
-          case "$GITHUB_WORKSPACE" in
-            */_work/notebooklm-mcp-pro/notebooklm-mcp-pro|*/work/notebooklm-mcp-pro/notebooklm-mcp-pro) ;;
-            *)
-              echo "Refusing to clean unexpected workspace: $GITHUB_WORKSPACE" >&2
-              exit 1
-              ;;
-          esac
-          CLEAN_TARGETS=(
-            "$GITHUB_WORKSPACE/storage"
-            "$GITHUB_WORKSPACE/.venv"
-            "$GITHUB_WORKSPACE/.pytest_cache"
-            "$GITHUB_WORKSPACE/.ruff_cache"
-            "$GITHUB_WORKSPACE/.mypy_cache"
-            "$GITHUB_WORKSPACE/htmlcov"
-            "$GITHUB_WORKSPACE/dist"
-            "$GITHUB_WORKSPACE/build"
-          )
-          if command -v sudo >/dev/null 2>&1 && sudo -n true 2>/dev/null; then
-            sudo -n rm -rf "${CLEAN_TARGETS[@]}"
-          else
-            rm -rf "${CLEAN_TARGETS[@]}"
-          fi
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          clean: false
+      - name: Prepare self-hosted workspace
+        uses: ./.github/actions/prepare-workspace
       - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          enable-cache: false
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
           python-version: "3.11"
@@ -146,15 +112,19 @@ jobs:
           docker buildx create --name "$BUILDER" --use
           docker buildx inspect --bootstrap
       - name: Build and push Docker image
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_USERNAME: ${{ github.actor }}
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           MINOR="${VERSION%.*}"
           MAJOR="${VERSION%%.*}"
           IMAGE="ghcr.io/oaslananka/notebooklm-mcp-pro"
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin
           docker buildx build --push -f deploy/Dockerfile \
             --provenance=true \
             --sbom=true \
+            --build-arg IMAGE_VERSION="${VERSION}" \
             -t "${IMAGE}:${VERSION}" \
             -t "${IMAGE}:${MINOR}" \
             -t "${IMAGE}:${MAJOR}" \

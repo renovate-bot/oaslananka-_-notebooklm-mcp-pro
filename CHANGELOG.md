@@ -7,6 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.18] - 2026-05-16
+
+### Fixed
+
+- Fixed `TaskStore._initialized` flag race condition under concurrent async
+  initialization; protected with `asyncio.Lock` double-checked locking pattern.
+- Removed unreachable `raise RuntimeError` sentinel in `run_with_retry`;
+  replaced with `raise AssertionError` to satisfy type checkers while
+  documenting the tenacity invariant.
+- Updated Dockerfile `org.opencontainers.image.version` label from hardcoded
+  `1.0.14` to dynamic `IMAGE_VERSION` build-arg; release pipeline now stamps
+  the correct version on every Docker image.
+
+### Security
+
+- Confirmed PyJWT 2.12.1 in the lockfile is not affected by CVE-2026-32597.
+- Confirmed authlib 1.7.2 in the lockfile is not affected by CVE-2025-59420.
+- Refreshed the dependency lockfile through the requested package update set;
+  `fastmcp` and `uvicorn` advanced within existing version bounds, and
+  pip-audit reported no known vulnerabilities for the exported environment.
+
+### CI
+
+- Added `ci-ok` and `security-ok` summary jobs as single required status check
+  targets for branch protection.
+- Extracted repeated workspace-cleanup logic into composite action
+  `.github/actions/prepare-workspace/action.yml`.
+- Added `merge_group` trigger to `ci.yml` for GitHub Merge Queue support.
+- Added `pull_request` trigger to `codeql.yml` for per-PR static analysis.
+- Added `push: branches: [main]` trigger to `security.yml`.
+- Added release-time CI gate to `release.yml`; tag push now verifies the
+  `test` check-run passed on the tagged commit before publishing.
+- Added `dependency-review.yml` workflow to block PRs introducing high-severity
+  CVEs or GPL-3.0/AGPL-3.0 licensed dependencies.
+- Added `zizmor.yml` workflow for GitHub Actions security scanning.
+- Fixed `cflite_batch.yml` `setup-python` SHA inconsistency (v6.0.0 -> v6.2.0).
+- Updated `pre-commit-config.yaml` ruff pin to match the installed hook version.
+- Applied `cancel-in-progress: ${{ github.event_name == 'pull_request' }}`
+  pattern to avoid cancelling main-branch runs.
+
 ## [1.0.17] - 2026-05-15
 
 ### Fixed

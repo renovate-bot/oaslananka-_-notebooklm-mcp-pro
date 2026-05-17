@@ -63,4 +63,7 @@ async def run_with_retry(
         with attempt:
             return await operation()
 
-    raise RuntimeError("retry policy ended without returning or raising")
+    # tenacity reraise=True guarantees the final retry exception is propagated.
+    raise AssertionError(
+        "unreachable: tenacity reraise=True ensures exception propagation"
+    )  # pragma: no cover

@@ -1,0 +1,40 @@
+name: Prepare self-hosted workspace
+description: Validate and clean self-hosted runner workspace
+
+runs:
+  using: composite
+  steps:
+    - name: Clean workspace
+      shell: bash
+      run: |
+        set -euo pipefail
+        if [ -z "${GITHUB_WORKSPACE:-}" ]; then
+          echo "GITHUB_WORKSPACE is unset" >&2
+          exit 1
+        fi
+        case "$GITHUB_WORKSPACE" in
+          */_work/notebooklm-mcp-pro/notebooklm-mcp-pro|*/work/notebooklm-mcp-pro/notebooklm-mcp-pro) ;;
+          *)
+            echo "Refusing to clean unexpected workspace: $GITHUB_WORKSPACE" >&2
+            exit 1
+            ;;
+        esac
+        CLEAN_TARGETS=(
+          "$GITHUB_WORKSPACE/storage"
+          "$GITHUB_WORKSPACE/.venv"
+          "$GITHUB_WORKSPACE/.pytest_cache"
+          "$GITHUB_WORKSPACE/.ruff_cache"
+          "$GITHUB_WORKSPACE/.mypy_cache"
+          "$GITHUB_WORKSPACE/htmlcov"
+          "$GITHUB_WORKSPACE/dist"
+          "$GITHUB_WORKSPACE/build"
+        )
+        if command -v sudo >/dev/null 2>&1 && sudo -n true 2>/dev/null; then
+          sudo -n rm -rf "${CLEAN_TARGETS[@]}"
+        else
+          rm -rf "${CLEAN_TARGETS[@]}"
+        fi
+        if [ -d "$GITHUB_WORKSPACE/.git" ]; then
+          git -C "$GITHUB_WORKSPACE" reset --hard HEAD
+          git -C "$GITHUB_WORKSPACE" clean -ffdx
+        fi

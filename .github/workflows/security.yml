@@ -1,14 +1,17 @@
 name: Security
 
 on:
+  push:
+    branches: [main]
   pull_request:
+  merge_group:
   workflow_dispatch:
   schedule:
     - cron: "23 4 * * 1"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -20,38 +23,14 @@ jobs:
   dependency-audit:
     name: pip-audit
     runs-on: [self-hosted, Linux, X64]
+    permissions:
+      contents: read
     steps:
-      - name: Prepare self-hosted workspace
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ -z "${GITHUB_WORKSPACE:-}" ]; then
-            echo "GITHUB_WORKSPACE is unset" >&2
-            exit 1
-          fi
-          case "$GITHUB_WORKSPACE" in
-            */_work/notebooklm-mcp-pro/notebooklm-mcp-pro|*/work/notebooklm-mcp-pro/notebooklm-mcp-pro) ;;
-            *)
-              echo "Refusing to clean unexpected workspace: $GITHUB_WORKSPACE" >&2
-              exit 1
-              ;;
-          esac
-          CLEAN_TARGETS=(
-            "$GITHUB_WORKSPACE/storage"
-            "$GITHUB_WORKSPACE/.venv"
-            "$GITHUB_WORKSPACE/.pytest_cache"
-            "$GITHUB_WORKSPACE/.ruff_cache"
-            "$GITHUB_WORKSPACE/.mypy_cache"
-            "$GITHUB_WORKSPACE/htmlcov"
-            "$GITHUB_WORKSPACE/dist"
-            "$GITHUB_WORKSPACE/build"
-          )
-          if command -v sudo >/dev/null 2>&1 && sudo -n true 2>/dev/null; then
-            sudo -n rm -rf "${CLEAN_TARGETS[@]}"
-          else
-            rm -rf "${CLEAN_TARGETS[@]}"
-          fi
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          clean: false
+      - name: Prepare self-hosted workspace
+        uses: ./.github/actions/prepare-workspace
       - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
@@ -67,37 +46,11 @@ jobs:
       contents: read
       security-events: write
     steps:
-      - name: Prepare self-hosted workspace
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ -z "${GITHUB_WORKSPACE:-}" ]; then
-            echo "GITHUB_WORKSPACE is unset" >&2
-            exit 1
-          fi
-          case "$GITHUB_WORKSPACE" in
-            */_work/notebooklm-mcp-pro/notebooklm-mcp-pro|*/work/notebooklm-mcp-pro/notebooklm-mcp-pro) ;;
-            *)
-              echo "Refusing to clean unexpected workspace: $GITHUB_WORKSPACE" >&2
-              exit 1
-              ;;
-          esac
-          CLEAN_TARGETS=(
-            "$GITHUB_WORKSPACE/storage"
-            "$GITHUB_WORKSPACE/.venv"
-            "$GITHUB_WORKSPACE/.pytest_cache"
-            "$GITHUB_WORKSPACE/.ruff_cache"
-            "$GITHUB_WORKSPACE/.mypy_cache"
-            "$GITHUB_WORKSPACE/htmlcov"
-            "$GITHUB_WORKSPACE/dist"
-            "$GITHUB_WORKSPACE/build"
-          )
-          if command -v sudo >/dev/null 2>&1 && sudo -n true 2>/dev/null; then
-            sudo -n rm -rf "${CLEAN_TARGETS[@]}"
-          else
-            rm -rf "${CLEAN_TARGETS[@]}"
-          fi
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          clean: false
+      - name: Prepare self-hosted workspace
+        uses: ./.github/actions/prepare-workspace
       - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
@@ -113,40 +66,15 @@ jobs:
   gitleaks:
     name: gitleaks
     runs-on: [self-hosted, Linux, X64]
+    permissions:
+      contents: read
     steps:
-      - name: Prepare self-hosted workspace
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ -z "${GITHUB_WORKSPACE:-}" ]; then
-            echo "GITHUB_WORKSPACE is unset" >&2
-            exit 1
-          fi
-          case "$GITHUB_WORKSPACE" in
-            */_work/notebooklm-mcp-pro/notebooklm-mcp-pro|*/work/notebooklm-mcp-pro/notebooklm-mcp-pro) ;;
-            *)
-              echo "Refusing to clean unexpected workspace: $GITHUB_WORKSPACE" >&2
-              exit 1
-              ;;
-          esac
-          CLEAN_TARGETS=(
-            "$GITHUB_WORKSPACE/storage"
-            "$GITHUB_WORKSPACE/.venv"
-            "$GITHUB_WORKSPACE/.pytest_cache"
-            "$GITHUB_WORKSPACE/.ruff_cache"
-            "$GITHUB_WORKSPACE/.mypy_cache"
-            "$GITHUB_WORKSPACE/htmlcov"
-            "$GITHUB_WORKSPACE/dist"
-            "$GITHUB_WORKSPACE/build"
-          )
-          if command -v sudo >/dev/null 2>&1 && sudo -n true 2>/dev/null; then
-            sudo -n rm -rf "${CLEAN_TARGETS[@]}"
-          else
-            rm -rf "${CLEAN_TARGETS[@]}"
-          fi
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
+          clean: false
           fetch-depth: 0
+      - name: Prepare self-hosted workspace
+        uses: ./.github/actions/prepare-workspace
       - name: Install gitleaks
         env:
           GITLEAKS_VERSION: "8.30.0"
@@ -158,3 +86,29 @@ jobs:
           chmod +x gitleaks
       - name: Run gitleaks
         run: ./gitleaks detect --config .gitleaks.toml --redact --source .
+
+  security-ok:
+    name: Security
+    if: ${{ always() && !cancelled() }}
+    needs: [dependency-audit, bandit, gitleaks]
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 2
+    permissions:
+      contents: read
+    steps:
+      - name: Check security gates
+        env:
+          AUDIT_RESULT: ${{ needs.dependency-audit.result }}
+          BANDIT_RESULT: ${{ needs.bandit.result }}
+          GITLEAKS_RESULT: ${{ needs.gitleaks.result }}
+        run: |
+          FAILED=()
+          [ "$AUDIT_RESULT" != "success" ] && FAILED+=("pip-audit: $AUDIT_RESULT")
+          [ "$BANDIT_RESULT" != "success" ] && FAILED+=("bandit: $BANDIT_RESULT")
+          [ "$GITLEAKS_RESULT" != "success" ] && FAILED+=("gitleaks: $GITLEAKS_RESULT")
+          if [ ${#FAILED[@]} -gt 0 ]; then
+            printf "Security gate failed:\n"
+            printf "  - %s\n" "${FAILED[@]}"
+            exit 1
+          fi
+          echo "All security gates passed."

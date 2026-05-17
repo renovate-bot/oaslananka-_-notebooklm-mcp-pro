@@ -12,6 +12,13 @@ feature changes.
 | Multi-organization contributors | Scorecard `Contributors` remains low for a single-maintainer project. | CONTRIBUTING documents onboarding; community growth is not code-only work. |
 | Project age | Scorecard `Maintained` remains low while the repository is less than 90 days old. | Weekly workflows and Dependabot activity establish maintenance history over time. |
 
+## CI/CD
+
+| Item | Impact | Current handling |
+|---|---|---|
+| Python 3.14 beta CI coverage | 3.14 beta is available; minor compatibility issues could pass until tested. | `<3.14` requires-python bound remains active; add beta/stable 3.14 to the matrix once dependencies support it. |
+| Reusable workflow setup action | Repeated self-hosted cleanup logic can drift across workflows. | Composite action `prepare-workspace` was added in v1.0.18 so workspace cleanup is managed in one place. |
+
 ## Architecture
 
 | Item | Impact | Current handling |

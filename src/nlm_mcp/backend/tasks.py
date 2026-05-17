@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 from dataclasses import dataclass
 from pathlib import Path
@@ -32,6 +33,7 @@ class TaskStore:
     def __init__(self, db_path: Path) -> None:
         self.db_path = db_path.expanduser()
         self._initialized = False
+        self._init_lock: asyncio.Lock = asyncio.Lock()
 
     @classmethod
     def from_settings(cls, settings: Settings) -> TaskStore:
@@ -138,26 +140,29 @@ class TaskStore:
     async def _ensure(self) -> None:
         if self._initialized:
             return
-        self.db_path.parent.mkdir(parents=True, exist_ok=True)
-        async with aiosqlite.connect(self.db_path) as db:
-            await db.execute(
-                """
-                CREATE TABLE IF NOT EXISTS artifact_tasks (
-                    task_id TEXT PRIMARY KEY,
-                    notebook_id TEXT NOT NULL,
-                    kind TEXT NOT NULL,
-                    status TEXT NOT NULL,
-                    metadata_json TEXT NOT NULL,
-                    created_at REAL NOT NULL,
-                    updated_at REAL NOT NULL
+        async with self._init_lock:
+            if self._initialized:
+                return
+            await asyncio.to_thread(self.db_path.parent.mkdir, parents=True, exist_ok=True)
+            async with aiosqlite.connect(self.db_path) as db:
+                await db.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS artifact_tasks (
+                        task_id TEXT PRIMARY KEY,
+                        notebook_id TEXT NOT NULL,
+                        kind TEXT NOT NULL,
+                        status TEXT NOT NULL,
+                        metadata_json TEXT NOT NULL,
+                        created_at REAL NOT NULL,
+                        updated_at REAL NOT NULL
+                    )
+                    """
                 )
-                """
-            )
-            await db.execute(
-                """
-                CREATE INDEX IF NOT EXISTS idx_artifact_tasks_notebook_updated
-                ON artifact_tasks (notebook_id, updated_at DESC)
-                """
-            )
-            await db.commit()
-        self._initialized = True
+                await db.execute(
+                    """
+                    CREATE INDEX IF NOT EXISTS idx_artifact_tasks_notebook_updated
+                    ON artifact_tasks (notebook_id, updated_at DESC)
+                    """
+                )
+                await db.commit()
+            self._initialized = True

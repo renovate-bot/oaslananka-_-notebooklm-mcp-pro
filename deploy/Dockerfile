@@ -19,11 +19,13 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 FROM python@sha256:401f6e1a67dad31a1bd78e9ad22d0ee0a3b52154e6bd30e90be696bb6a3d7461 AS runtime
 
+ARG IMAGE_VERSION=dev
+
 LABEL org.opencontainers.image.title="notebooklm-mcp-pro" \
       org.opencontainers.image.description="Production-grade MCP server for Google NotebookLM" \
       org.opencontainers.image.source="https://github.com/oaslananka/notebooklm-mcp-pro" \
       org.opencontainers.image.licenses="MIT" \
-      org.opencontainers.image.version="1.0.14"
+      org.opencontainers.image.version="${IMAGE_VERSION}"
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
